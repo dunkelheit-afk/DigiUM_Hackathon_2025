@@ -35,6 +35,7 @@ export default function LoginPage() {
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(loginSchema),
+    mode: "onChange", // <--- Tambahkan ini: Validasi saat nilai input berubah
   });
 
   // Function to handle form submission
@@ -42,12 +43,21 @@ export default function LoginPage() {
     console.log("Login data:", data);
     // Here you would typically send data to your backend for authentication
 
+    // Example: Show a success toast notification
     toast({
       title: "Login Successful!",
       description: "You have been logged in. Redirecting...",
       variant: "default",
     });
 
+    // Example: Show an error toast notification (e.g., from backend response)
+    // toast({
+    //   title: "Login Failed",
+    //   description: "Invalid credentials. Please try again.",
+    //   variant: "destructive", // Requires 'destructive' variant in your toast.tsx
+    // });
+
+    // Simulate redirection
     setTimeout(() => {
       console.log("Redirecting to dashboard...");
     }, 2000);
@@ -61,7 +71,7 @@ export default function LoginPage() {
       <Card
         className="w-full max-w-md space-y-8 p-8 shadow-lg rounded-2xl
                    transition-all duration-700 ease-out hover:shadow-xl hover:scale-[1.01] hover:ring-4 hover:ring-purple-300 hover:ring-offset-2 hover:ring-offset-gray-50
-                   animate-in fade-in zoom-in-50" // Card animation re-added
+                   animate-in fade-in zoom-in-50"
       >
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-extrabold text-gray-900">
@@ -72,8 +82,8 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-            {/* Email Input - No animation */}
+          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)} noValidate>
+            {/* Email Input */}
             <div>
               <Label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email Address
@@ -90,12 +100,14 @@ export default function LoginPage() {
                   {...register("email")}
                 />
                 {errors.email && (
-                  <p className="mt-2 text-sm text-red-600">{errors.email.message}</p>
+                  <p className="mt-2 text-sm text-red-600 font-medium bg-red-50 p-2 rounded-md">
+                    {errors.email.message}
+                  </p>
                 )}
               </div>
             </div>
 
-            {/* Password Input - No animation */}
+            {/* Password Input */}
             <div>
               <Label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Password
@@ -112,12 +124,14 @@ export default function LoginPage() {
                   {...register("password")}
                 />
                 {errors.password && (
-                  <p className="mt-2 text-sm text-red-600">{errors.password.message}</p>
+                  <p className="mt-2 text-sm text-red-600 font-medium bg-red-50 p-2 rounded-md">
+                    {errors.password.message}
+                  </p>
                 )}
               </div>
             </div>
 
-            {/* Forgot Password Link - No animation */}
+            {/* Forgot Password Link */}
             <div className="flex items-center justify-between">
               <div className="text-sm">
                 <Link href="/forgot-password" className="font-medium text-purple-600 hover:text-purple-500 transition-colors duration-200">
@@ -126,8 +140,8 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Login Button - Animation re-added */}
-            <div className="animate-in fade-in slide-in-from-bottom duration-700 delay-600">
+            {/* Login Button */}
+            <div>
               <Button
                 type="submit"
                 className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200"
@@ -137,8 +151,8 @@ export default function LoginPage() {
             </div>
           </form>
 
-          {/* Register Link - Animation re-added */}
-          <div className="mt-6 text-center text-sm text-gray-600 animate-in fade-in slide-in-from-bottom duration-700 delay-700">
+          {/* Register Link */}
+          <div className="mt-6 text-center text-sm text-gray-600">
             Don't have an account?{" "}
             <Link href="/register" className="font-medium text-purple-600 hover:text-purple-500">
               Sign Up

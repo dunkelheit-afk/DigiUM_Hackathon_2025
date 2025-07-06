@@ -21,7 +21,7 @@ import { useToast } from '@/hooks/use-toast'; // Corrected import path for useTo
 // Define validation schema using Zod
 const registerSchema = z.object({
   fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }),
-  email: z.string().email({ message: "Invalid email address." }),
+  email: z.string().email({ message: "Invalid email Format." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
   confirmPassword: z.string().min(6, { message: "Confirm password must be at least 6 characters." }),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -40,6 +40,7 @@ export default function RegisterPage() {
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(registerSchema),
+    mode: "onChange", // Add mode: "onChange" for interactive validation
   });
 
   // Function to handle form submission
@@ -55,7 +56,6 @@ export default function RegisterPage() {
 
     // Simulate redirection to login page
     setTimeout(() => {
-      // router.push('/login'); // Example: redirect to login
       console.log("Redirecting to login page...");
     }, 2000);
   };
@@ -79,7 +79,7 @@ export default function RegisterPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)} noValidate> {/* Add noValidate to disable browser validation */}
             {/* Full Name Input - No animation */}
             <div>
               <Label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
@@ -97,7 +97,7 @@ export default function RegisterPage() {
                   {...register("fullName")}
                 />
                 {errors.fullName && (
-                  <p className="mt-2 text-sm text-red-600">{errors.fullName.message}</p>
+                  <p className="mt-2 text-sm text-red-600 font-medium bg-red-50 p-2 rounded-md">{errors.fullName.message}</p> // Styling error message
                 )}
               </div>
             </div>
@@ -119,7 +119,7 @@ export default function RegisterPage() {
                   {...register("email")}
                 />
                 {errors.email && (
-                  <p className="mt-2 text-sm text-red-600">{errors.email.message}</p>
+                  <p className="mt-2 text-sm text-red-600 font-medium bg-red-50 p-2 rounded-md">{errors.email.message}</p> // Styling error message
                 )}
               </div>
             </div>
@@ -141,7 +141,7 @@ export default function RegisterPage() {
                   {...register("password")}
                 />
                 {errors.password && (
-                  <p className="mt-2 text-sm text-red-600">{errors.password.message}</p>
+                  <p className="mt-2 text-sm text-red-600 font-medium bg-red-50 p-2 rounded-md">{errors.password.message}</p> // Styling error message
                 )}
               </div>
             </div>
@@ -163,7 +163,7 @@ export default function RegisterPage() {
                   {...register("confirmPassword")}
                 />
                 {errors.confirmPassword && (
-                  <p className="mt-2 text-sm text-red-600">{errors.confirmPassword.message}</p>
+                  <p className="mt-2 text-sm text-red-600 font-medium bg-red-50 p-2 rounded-md">{errors.confirmPassword.message}</p> // Styling error message
                 )}
               </div>
             </div>
