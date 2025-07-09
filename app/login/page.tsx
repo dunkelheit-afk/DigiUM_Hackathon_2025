@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useRouter } from 'next/navigation'; // <-- Import useRouter
 
 import { Button } from '@/components/ui/button';
 import {
@@ -17,17 +18,19 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { createClient } from '@/lib/supabase/client'; // <-- Import Supabase client
 
-// Define validation schema using Zod
+// Skema validasi Zod
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+  password: z.string().min(1, { message: "Password cannot be empty." }), // Minimal 1 karakter
 });
 
 type FormData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const { toast } = useToast();
+  const router = useRouter(); // <-- Inisialisasi router
 
   const {
     register,
@@ -35,38 +38,52 @@ export default function LoginPage() {
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(loginSchema),
-    mode: "onChange", // <--- Tambahkan ini: Validasi saat nilai input berubah
+    mode: "onChange",
   });
 
-  // Function to handle form submission
-  const onSubmit = (data: FormData) => {
-    console.log("Login data:", data);
-    // Here you would typically send data to your backend for authentication
-
-    // Example: Show a success toast notification
-    toast({
-      title: "Login Successful!",
-      description: "You have been logged in. Redirecting...",
-      variant: "default",
+  // --- FUNGSI ON SUBMIT DIPERBARUI ---
+  const onSubmit = async (data: FormData) => {
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
     });
 
-    // Example: Show an error toast notification (e.g., from backend response)
-    // toast({
-    //   title: "Login Failed",
-    //   description: "Invalid credentials. Please try again.",
-    //   variant: "destructive", // Requires 'destructive' variant in your toast.tsx
-    // });
+    const result = await response.json();
 
-    // Simulate redirection
-    setTimeout(() => {
-      console.log("Redirecting to dashboard...");
-    }, 2000);
+    if (!response.ok) {
+      toast({
+        title: "Login Failed",
+        description: result.error || "Invalid credentials. Please try again.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Login Successful!",
+        description: "You are being redirected to your dashboard.",
+        variant: "default",
+      });
+      // Arahkan ke dashboard setelah berhasil login
+      router.push('/dashboard');
+      router.refresh(); // Refresh halaman untuk memastikan state server terbaru
+    }
+  };
+
+  // --- FUNGSI UNTUK GOOGLE SIGN-IN ---
+  const handleGoogleSignIn = async () => {
+    const supabase = createClient();
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${location.origin}/auth/callback`,
+      },
+    });
   };
 
   return (
     <div
       className="flex min-h-screen items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-cover bg-center"
-      style={{ backgroundImage: `url('/bsvbg.jpg')` }} // Background image
+      style={{ backgroundImage: `url('/bsvbg.jpg')` }}
     >
       <Card
         className="w-full max-w-md space-y-8 p-8 shadow-lg rounded-2xl
@@ -82,76 +99,40 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)} noValidate>
-            {/* Email Input */}
+          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
             <div>
-              <Label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email Address
-              </Label>
-              <div className="mt-1">
-                <Input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 focus:z-10 sm:text-sm
-                             transition-all duration-200 focus:ring-2"
-                  placeholder="Enter your email"
-                  {...register("email")}
-                />
-                {errors.email && (
-                  <p className="mt-2 text-sm text-red-600 font-medium bg-red-50 p-2 rounded-md">
-                    {errors.email.message}
-                  </p>
-                )}
-              </div>
+              <Label htmlFor="email">Email Address</Label>
+              <Input id="email" type="email" {...register("email")} />
+              {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email.message}</p>}
             </div>
 
-            {/* Password Input */}
             <div>
-              <Label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </Label>
-              <div className="mt-1">
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 focus:z-10 sm:text-sm
-                             transition-all duration-200 focus:ring-2"
-                  placeholder="Enter your password"
-                  {...register("password")}
-                />
-                {errors.password && (
-                  <p className="mt-2 text-sm text-red-600 font-medium bg-red-50 p-2 rounded-md">
-                    {errors.password.message}
-                  </p>
-                )}
-              </div>
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" type="password" {...register("password")} />
+              {errors.password && <p className="text-red-600 text-sm mt-1">{errors.password.message}</p>}
             </div>
 
-            {/* Forgot Password Link */}
-            <div className="flex items-center justify-between">
-              <div className="text-sm">
-                <Link href="/forgot-password" className="font-medium text-purple-600 hover:text-purple-500 transition-colors duration-200">
-                  Forgot your password?
-                </Link>
-              </div>
-            </div>
-
-            {/* Login Button */}
-            <div>
-              <Button
-                type="submit"
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200"
-              >
-                Sign In
-              </Button>
-            </div>
+            <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">
+              Sign In
+            </Button>
           </form>
 
-          {/* Register Link */}
+           <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-2 text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
+          </div>
+
+          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+            <svg role="img" viewBox="0 0 24 24" className="mr-2 h-4 w-4"><path fill="currentColor" d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.02 1.02-2.62 2.04-4.82 2.04-5.82 0-9.6-4.82-9.6-9.6s3.78-9.6 9.6-9.6c2.58 0 4.6.96 6.18 2.4l2.16-2.16C19.38 1.18 16.38 0 12.48 0 5.82 0 .12 5.7 .12 12.36s5.7 12.36 12.36 12.36c6.66 0 11.7-4.44 11.7-11.52 0-.78-.06-1.56-.18-2.34H12.48z"></path></svg>
+            Sign In with Google
+          </Button>
+
           <div className="mt-6 text-center text-sm text-gray-600">
             Don't have an account?{" "}
             <Link href="/register" className="font-medium text-purple-600 hover:text-purple-500">
