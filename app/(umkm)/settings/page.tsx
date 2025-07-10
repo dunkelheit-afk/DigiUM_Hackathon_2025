@@ -1,136 +1,111 @@
 // app/(umkm)/settings/page.tsx
-'use client'; // This is a Client Component for interactivity
+'use client';
 
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator'; // Import Separator for visual division
-import { Save, User, Building2, Lock } from 'lucide-react'; // Icons for settings sections
-import React from 'react';
+import { Separator } from '@/components/ui/separator';
+import { Save, User, Building2, Lock, Loader2 } from 'lucide-react';
+import { useUser } from '@/app/contexts/UserContext'; // Impor hook useUser
+import { createClient } from '@/lib/supabase/client';
 
 export default function SettingsPage() {
-  // Kelas card yang konsisten dengan dashboard utama
-  const cardClasses = `
-    bg-white /* Solid white background */
-    rounded-lg /* Rounded corners */
-    shadow-md /* Subtle shadow */
-    border border-gray-200 /* Standard gray border */
-    transition-all duration-300 ease-out /* Smooth transitions for hover effects */
-    hover:shadow-lg hover:scale-[1.01] /* Hover: larger shadow and slight scale */
-    hover:ring-2
-  `;
+  const { user, profile, isLoading, refetchProfile } = useUser(); // Gunakan data dari context
+  const supabase = createClient();
 
-  // Dummy state for form fields (replace with actual state management/backend data)
-  const [profile, setProfile] = React.useState({
-    name: 'Dimsthemeatboy',
-    email: 'dims@umkm.com',
-    phone: '081234567890',
-  });
+  // State lokal untuk menampung input dari form
+  const [fullName, setFullName] = useState('');
+  const [umkmName, setUmkmName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
-  const [business, setBusiness] = React.useState({
-    umkmName: 'Kopi Nusantara',
-    address: 'Jl. Kopi No. 10, Jakarta',
-    industry: 'Food & Beverage',
-  });
+  // Isi form dengan data dari context saat pertama kali load
+  useEffect(() => {
+    if (profile) {
+      setFullName(profile.full_name || '');
+      setUmkmName(profile.umkm_name || '');
+      setPhone(profile.phone || '');
+    }
+  }, [profile]);
 
-  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setProfile({ ...profile, [e.target.id]: e.target.value });
+  const handleSaveAll = async () => {
+    if (!user) return alert("Sesi tidak ditemukan, mohon login ulang.");
+    setIsSaving(true);
+
+    // --- PERUBAHAN UTAMA ADA DI SINI ---
+    // Menggunakan .upsert() bukan .update()
+    // Upsert akan meng-update jika data ada, atau membuat baru jika tidak ada.
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({
+        id: user.id, // Pastikan ID disertakan untuk pencocokan
+        full_name: fullName,
+        umkm_name: umkmName,
+        phone: phone,
+        updated_at: new Date().toISOString(),
+      })
+      .select() // Diperlukan setelah upsert
+      .single();
+
+    if (error) {
+      alert('Gagal menyimpan perubahan: ' + error.message);
+    } else {
+      alert('Perubahan berhasil disimpan!');
+      // Panggil refetch untuk memperbarui data di seluruh aplikasi, termasuk sidebar
+      refetchProfile(); 
+    }
+    setIsSaving(false);
   };
 
-  const handleBusinessChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setBusiness({ ...business, [e.target.id]: e.target.value });
-  };
-
-  const handleProfileSave = () => {
-    console.log('Profile Saved:', profile);
-    // Implement API call to save profile
-  };
-
-  const handleBusinessSave = () => {
-    console.log('Business Info Saved:', business);
-    // Implement API call to save business info
-  };
-
-  const handleChangePassword = () => {
-    console.log('Change Password clicked');
-    // Implement password change logic (e.g., open a dialog)
-  };
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin text-purple-600"/></div>;
+  }
 
   return (
-    <div className="space-y-8">
-      {/* Page Header */}
+    <div className="space-y-8 p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-        <Button className="bg-purple-600 text-white hover:bg-purple-700"> {/* Apply consistent button styling */}
-          <Save className="mr-2 h-4 w-4" /> Save All Changes
+        <h1 className="text-3xl font-bold text-gray-900">Pengaturan</h1>
+        <Button onClick={handleSaveAll} disabled={isSaving} className="bg-purple-600 text-white hover:bg-purple-700">
+          {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+          Simpan Semua Perubahan
         </Button>
       </div>
 
-      {/* User Profile Settings */}
-      <Card className={cardClasses}> {/* Apply consistent card classes */}
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center text-gray-800"> {/* Text color adjusted */}
-            <User className="mr-2 h-5 w-5 text-purple-600" /> Personal Profile
-          </CardTitle>
-          <CardDescription className="text-gray-600">Manage your personal information.</CardDescription> {/* Text color adjusted */}
+          <CardTitle className="flex items-center text-gray-800"><User className="mr-2 h-5 w-5 text-purple-600" /> Profil Pribadi</CardTitle>
+          <CardDescription className="text-gray-600">Kelola informasi pribadi Anda.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="name" className="text-gray-700">Full Name</Label> {/* Text color adjusted */}
-            <Input id="name" value={profile.name} onChange={handleProfileChange} className="border-gray-300 focus:ring-purple-500 focus:border-purple-500" /> {/* Input styling */}
+            <Label htmlFor="fullName">Nama Lengkap</Label>
+            <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} />
           </div>
           <div>
-            <Label htmlFor="email" className="text-gray-700">Email Address</Label> {/* Text color adjusted */}
-            <Input id="email" type="email" value={profile.email} onChange={handleProfileChange} disabled className="border-gray-300 focus:ring-purple-500 focus:border-purple-500 bg-gray-100 cursor-not-allowed" /> {/* Input styling */}
+            <Label htmlFor="email">Alamat Email</Label>
+            <Input id="email" type="email" value={user?.email || ''} disabled className="bg-gray-100 cursor-not-allowed" />
           </div>
           <div>
-            <Label htmlFor="phone" className="text-gray-700">Phone Number</Label> {/* Text color adjusted */}
-            <Input id="phone" value={profile.phone} onChange={handleProfileChange} className="border-gray-300 focus:ring-purple-500 focus:border-purple-500" /> {/* Input styling */}
+            <Label htmlFor="phone">Nomor Telepon</Label>
+            <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
           </div>
-          <Button className="bg-purple-600 text-white hover:bg-purple-700" onClick={handleProfileSave}>Save Profile</Button> {/* Apply consistent button styling */}
         </CardContent>
       </Card>
 
-      <Separator className="bg-gray-200" /> {/* Visual separator color adjusted */}
+      <Separator />
 
-      {/* Business Information Settings */}
-      <Card className={cardClasses}> {/* Apply consistent card classes */}
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center text-gray-800"> {/* Text color adjusted */}
-            <Building2 className="mr-2 h-5 w-5 text-purple-600" /> Business Information
-          </CardTitle>
-          <CardDescription className="text-gray-600">Manage your UMKM's details.</CardDescription> {/* Text color adjusted */}
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="umkmName" className="text-gray-700">UMKM Name</Label> {/* Text color adjusted */}
-            <Input id="umkmName" value={business.umkmName} onChange={handleBusinessChange} className="border-gray-300 focus:ring-purple-500 focus:border-purple-500" /> {/* Input styling */}
-          </div>
-          <div>
-            <Label htmlFor="address" className="text-gray-700">Business Address</Label> {/* Text color adjusted */}
-            <Input id="address" value={business.address} onChange={handleBusinessChange} className="border-gray-300 focus:ring-purple-500 focus:border-purple-500" /> {/* Input styling */}
-          </div>
-          <div>
-            <Label htmlFor="industry" className="text-gray-700">Industry Type</Label> {/* Text color adjusted */}
-            <Input id="industry" value={business.industry} onChange={handleBusinessChange} className="border-gray-300 focus:ring-purple-500 focus:border-purple-500" /> {/* Input styling */}
-          </div>
-          <Button className="bg-purple-600 text-white hover:bg-purple-700" onClick={handleBusinessSave}>Save Business Info</Button> {/* Apply consistent button styling */}
-        </CardContent>
-      </Card>
-
-      <Separator className="bg-gray-200" /> {/* Visual separator color adjusted */}
-
-      {/* Security Settings */}
-      <Card className={cardClasses}> {/* Apply consistent card classes */}
-        <CardHeader>
-          <CardTitle className="flex items-center text-gray-800"> {/* Text color adjusted */}
-            <Lock className="mr-2 h-5 w-5 text-purple-600" /> Security
-          </CardTitle>
-          <CardDescription className="text-gray-600">Manage your account security.</CardDescription> {/* Text color adjusted */}
+          <CardTitle className="flex items-center text-gray-800"><Building2 className="mr-2 h-5 w-5 text-purple-600" /> Informasi Bisnis</CardTitle>
+          <CardDescription className="text-gray-600">Kelola detail UMKM Anda.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="outline" className="text-purple-600 border-purple-600 hover:bg-purple-50 hover:text-purple-700" onClick={handleChangePassword}>Change Password</Button> {/* Apply consistent button styling */}
+          <div>
+            <Label htmlFor="umkmName">Nama UMKM</Label>
+            <Input id="umkmName" value={umkmName} onChange={(e) => setUmkmName(e.target.value)} />
+          </div>
         </CardContent>
       </Card>
     </div>
