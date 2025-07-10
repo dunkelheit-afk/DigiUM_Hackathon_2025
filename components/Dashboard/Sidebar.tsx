@@ -1,4 +1,3 @@
-// components/Dashboard/Sidebar.tsx
 'use client';
 
 import Link from 'next/link';
@@ -11,21 +10,30 @@ import {
   Handshake,
   Settings,
   LogOut,
-  Menu, // Icon untuk membuka sidebar
-  X, // Icon untuk menutup sidebar
+  Menu,
+  X,
 } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation'; // <-- Import useRouter
 import { Button } from '@/components/ui/button';
 
-// DEFINISI INTERFACE UNTUK PROPS SIDEBAR
 interface SidebarProps {
   isOpen: boolean;
   toggleSidebar: () => void;
 }
 
-// Komponen Sidebar menerima props isOpen dan toggleSidebar
 export function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter(); // <-- Inisialisasi router
+
+  // --- FUNGSI UNTUK LOGOUT ---
+  const handleLogout = async () => {
+    // Panggil API endpoint untuk sign-out
+    await fetch('/api/auth/sign-out', { method: 'POST' });
+    // Arahkan pengguna ke halaman login setelah berhasil logout
+    router.push('/login');
+    router.refresh();
+  };
+
 
   const navItems = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
@@ -95,10 +103,9 @@ export function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
 
       {/* Bottom Section: User Profile & Logout */}
       {isOpen && (
-        <div className="mt-auto border-t border-purple-300/20 pt-4"> {/* Border ungu transparan */}
-          {/* User Profile Info - Diberi container rapi dengan ring */}
+        <div className="mt-auto border-t border-purple-300/20 pt-4">
           <div className="flex items-center p-3 rounded-lg bg-white/10 mb-4
-                          border border-white/20 /* Border halus */
+                          border border-white/20
                           transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-md
                           hover:ring-2 hover:ring-purple-400 hover:ring-offset-2 hover:ring-offset-white/10
                           will-change-transform will-change-shadow will-change-filter">
@@ -110,13 +117,13 @@ export function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
               <p className="text-xs text-gray-700">Owner UMKM</p>
             </div>
           </div>
-          {/* Logout Button */}
-          <Link
-            href="/login"
-            className="flex items-center justify-center gap-2 py-2 px-4 ring-1 ring-purple-600 hover:bg-purple-600 hover:text-white text-black rounded-xl transition"
+          {/* Tombol Logout sekarang menggunakan onClick */}
+          <Button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 py-2 px-4 ring-1 ring-purple-600 hover:bg-purple-600 hover:text-white text-black rounded-xl transition"
           >
             <LogOut className="w-4 h-4" /> Logout
-          </Link>
+          </Button>
         </div>
       )}
     </aside>
