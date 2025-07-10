@@ -22,7 +22,18 @@ genai.configure(api_key=GOOGLE_API_KEY)
 app = FastAPI()
 
 # Konfigurasi CORS
-origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
+# Dapatkan URL Vercel dari environment variable
+VERCEL_URL = os.getenv('VERCEL_URL')
+
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000"
+]
+
+# Jika ada VERCEL_URL, tambahkan ke daftar origin
+if VERCEL_URL:
+    origins.append(f"https://{VERCEL_URL}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -30,6 +41,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # Definisikan struktur data input mentah
 class RawFinancialData(BaseModel):
