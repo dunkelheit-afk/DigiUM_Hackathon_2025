@@ -1,203 +1,262 @@
-// app/(umkm)/dashboard/page.tsx
-'use client'; // This is a Client Component because it uses hooks, interactive elements, and Recharts
+'use client'; // This is a Client Component because it uses hooks and interactive charts
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DollarSign, TrendingUp, TrendingDown, Users, Package, FileText, Wallet, Menu } from 'lucide-react'; // Icons for metrics
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
+  AlertTriangle, CheckCircle2, TrendingUp, TrendingDown, Menu, PieChart as PieIcon, BarChart3,
+  Loader2
+} from 'lucide-react';
+import {
+  YAxis, XAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, PieChart, Pie, Cell, RadialBarChart, RadialBar, PolarAngleAxis
 } from 'recharts';
-import { useSidebarToggle } from '@/app/contexts/SidebarToggleContext'; // Correct import path for useSidebarToggle
-import React from 'react'; // Ensure React is imported
+import { useSidebarToggle } from '@/app/contexts/SidebarToggleContext';
 
-// Dummy data for the revenue and expenses chart
-const chartData = [
-  { name: 'Jan', Revenue: 4000, Expenses: 2400 },
-  { name: 'Feb', Revenue: 3000, Expenses: 1398 },
-  { name: 'Mar', Revenue: 2000, Expenses: 9800 },
-  { name: 'Apr', Revenue: 2780, Expenses: 3908 },
-  { name: 'May', Revenue: 1890, Expenses: 4800 },
-  { name: 'Jun', Revenue: 2390, Expenses: 3800 },
-  { name: 'Jul', Revenue: 3490, Expenses: 4300 },
-];
+// Define the structure of the data expected from your analysis API
+interface AnalysisData {
+  prediction_status: 'Healthy' | 'Moderately Healthy' | 'Unhealthy';
+  net_profit_margin: number;
+  current_ratio: number;
+  debt_to_equity: number;
+  revenue: number;
+  expenses: number;
+  net_profit: number;
+  assets: number;
+  liabilities: number;
+  equity: number;
+}
 
-// Dummy data for recent transactions table
-const recentTransactions = [
-  { id: 'T001', date: '2024-07-01', description: 'Coffee Sales', amount: '+500.000', type: 'Income' },
-  { id: 'T002', date: '2024-07-01', description: 'Raw Material Purchase', amount: '-200.000', type: 'Expense' },
-  { id: 'T003', date: '2024-06-30', description: 'Employee Salary', amount: '-1.500.000', type: 'Expense' },
-  { id: 'T004', date: '2024-06-29', description: 'Batik Sales', amount: '+750.000', type: 'Income' },
-  { id: 'T005', date: '2024-06-28', description: 'Electricity Bill', amount: '-150.000', type: 'Expense' },
-];
+// --- CHART COMPONENTS ---
+
+// Main Health Gauge Chart
+const HealthGaugeChart = ({ status }: { status: AnalysisData['prediction_status'] }) => {
+  const value = status === 'Healthy' ? 100 : status === 'Moderately Healthy' ? 66 : 33;
+  const color = status === 'Healthy' ? '#22c55e' : status === 'Moderately Healthy' ? '#f59e0b' : '#ef4444';
+  const data = [{ name: 'Health', value }];
+
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <RadialBarChart 
+        innerRadius="70%" 
+        outerRadius="100%" 
+        data={data} 
+        startAngle={180} 
+        endAngle={0}
+        barSize={30}
+      >
+        <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
+        {/* CORRECTED: The 'clockWise' prop has been removed */}
+        <RadialBar background dataKey='value' cornerRadius={15}>
+            <Cell fill={color} />
+        </RadialBar>
+        <text
+            x="50%"
+            y="70%"
+            textAnchor="middle"
+            dominantBaseline="middle"
+            className="text-4xl font-bold fill-slate-800"
+        >
+            {status}
+        </text>
+         <text
+            x="50%"
+            y="85%"
+            textAnchor="middle"
+            dominantBaseline="middle"
+            className="text-sm fill-slate-500"
+        >
+            Overall Status
+        </text>
+      </RadialBarChart>
+    </ResponsiveContainer>
+  );
+};
+
+// Financial Summary Bar Chart
+const FinancialBarChart = ({ data }: { data: any[] }) => (
+  <ResponsiveContainer width="100%" height="100%">
+    <BarChart data={data} layout="vertical" margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+      <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+      <XAxis type="number" hide />
+      <YAxis type="category" dataKey="name" width={80} axisLine={false} tickLine={false} />
+      <Tooltip cursor={{fill: '#f3e8ff'}}/>
+      <Bar dataKey="value" barSize={25} radius={[0, 10, 10, 0]}>
+         <Cell fill="#8884d8" />
+         <Cell fill="#82ca9d" />
+         <Cell fill="#ffc658" />
+      </Bar>
+    </BarChart>
+  </ResponsiveContainer>
+);
+
+// Equity Structure Pie Chart
+const EquityPieChart = ({ data }: { data: any[] }) => {
+    const COLORS = ['#a78bfa', '#fb7185', '#d8b4fe'];
+    return (
+     <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+            {data.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+          </Pie>
+          <Tooltip />
+          <Legend />
+        </PieChart>
+      </ResponsiveContainer>
+    );
+};
+
 
 export default function UmkmDashboardPage() {
   const { toggleSidebar } = useSidebarToggle();
+  const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // glassCardClasses variable is removed as we are directly using the custom CSS class
-  // Removed glassCardClasses definition entirely
+  useEffect(() => {
+    const fetchLatestAnalysis = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await fetch('/api/analysis/latest'); 
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.message || "Gagal memuat data analisis.");
+        }
+        const data: AnalysisData = await response.json();
+        setAnalysisData(data);
+      } catch (err: any) {
+        setError(err.message || 'Belum ada analisis yang dilakukan. Silakan buka Financial Suite untuk menjalankan analisis.');
+        setAnalysisData(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchLatestAnalysis();
+  }, []);
+
+  // Prepare data for charts based on fetched analysis data
+  const financialBarData = analysisData ? [
+    { name: 'Revenue', value: analysisData.revenue },
+    { name: 'Expenses', value: analysisData.expenses },
+    { name: 'Profit', value: analysisData.net_profit },
+  ] : [];
+
+  const equityPieData = analysisData ? [
+    { name: 'Liabilities', value: analysisData.liabilities },
+    { name: 'Equity', value: analysisData.equity },
+  ] : [];
+  
+  const kpiCards = analysisData ? [
+      { title: "Net Profit Margin", value: `${(analysisData.net_profit_margin * 100).toFixed(2)}%`, Icon: TrendingUp, good: analysisData.net_profit_margin > 0 },
+      { title: "Current Ratio", value: analysisData.current_ratio.toFixed(2), Icon: TrendingUp, good: analysisData.current_ratio > 1.5 },
+      { title: "Debt to Equity", value: analysisData.debt_to_equity.toFixed(2), Icon: TrendingDown, good: analysisData.debt_to_equity < 1.0 },
+  ] : [];
+
+  const getRecommendation = (status?: string) => {
+    switch(status){
+        case 'Healthy':
+            return "Kerja bagus! Keuangan Anda kuat. Fokus pada peningkatan skala dan eksplorasi peluang pertumbuhan baru sambil menjaga kontrol biaya.";
+        case 'Moderately Healthy':
+            return "Anda berada di jalur yang benar, tetapi ada ruang untuk perbaikan. Pantau arus kas Anda dengan cermat dan cari cara untuk meningkatkan margin keuntungan.";
+        case 'Unhealthy':
+            return "Perhatian segera diperlukan. Fokus pada pengurangan pengeluaran yang tidak perlu, perbaiki aliran pendapatan, dan kelola utang secara efektif.";
+        default:
+            return "Jalankan analisis untuk mendapatkan rekomendasi yang dipersonalisasi.";
+    }
+  }
+
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-screen"> <Loader2 className="h-8 w-8 animate-spin text-purple-600"/> </div>;
+  }
+  
+  if (error || !analysisData) {
+     return (
+        <div className="flex flex-col justify-center items-center h-screen text-center p-4">
+            <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4"/>
+            <h2 className="text-2xl font-bold text-slate-800">Data Tidak Tersedia</h2>
+            <p className="text-slate-500 mt-2">{error}</p>
+            <Button className="mt-6 bg-purple-600 hover:bg-purple-700" onClick={() => window.location.href='/dashboard/finance'}>
+                Jalankan Analisis Pertama
+            </Button>
+        </div>
+     )
+  }
 
   return (
-    <div className="space-y-8">
-      {/* Dashboard Header Section */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">UMKM Dashboard Overview</h1>
-        <div className="flex space-x-4">
-          {/* Toggle button for desktop - only visible when sidebar is closed */}
-          <Button variant="ghost" size="icon" className="text-gray-700 hover:bg-white/20 hover:text-gray-900 hidden md:inline-flex" onClick={toggleSidebar as React.MouseEventHandler<HTMLButtonElement>}>
-            <Menu className="w-6 h-6" />
-          </Button>
-
-          <Button variant="outline" className="text-purple-600 border-purple-600 hover:bg-purple-50 hover:text-purple-700">
-            <FileText className="mr-2 h-4 w-4" /> Export Report
-          </Button>
-          <Button className="bg-purple-600 text-white hover:bg-purple-700">
-            <DollarSign className="mr-2 h-4 w-4" /> Add Transaction
-          </Button>
+    <div className="space-y-6 bg-gradient-to-br from-purple-50 via-white to-white p-6 rounded-lg">
+      {/* Dashboard Header */}
+      <div className="flex justify-between items-center">
+        <div>
+            <h1 className="text-3xl font-bold text-gray-900">Financial Health Dashboard</h1>
+            <p className="text-slate-500">Selamat datang kembali! Berikut adalah ringkasan bisnis terbaru Anda.</p>
         </div>
+        <Button variant="ghost" size="icon" className="text-gray-700 hover:bg-purple-100/60 hidden md:inline-flex" onClick={toggleSidebar}>
+          <Menu className="w-6 h-6" />
+        </Button>
       </div>
 
-      {/* Financial Metrics Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Apply standard card styling - no glassmorphism classes */}
-        <Card className="bg-white border shadow-md rounded-xl transition hover:shadow-lg hover:scale-[1.01] hover:ring-2 hover:ring-purple-400 hover:ring-opacity-50 hover:ring-offset-2 hover:ring-offset-gray-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-800">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-gray-700" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">Rp 15.231.890</div>
-            <p className="text-xs text-gray-600">+20.1% from last month</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white border shadow-md rounded-xl transition hover:shadow-lg hover:scale-[1.01] hover:ring-2 hover:ring-purple-400 hover:ring-opacity-50 hover:ring-offset-2 hover:ring-offset-gray-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-800">Total Expenses</CardTitle>
-            <TrendingDown className="h-4 w-4 text-gray-700" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">Rp 7.500.000</div>
-            <p className="text-xs text-gray-600">-5.2% from last month</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white border shadow-md rounded-xl transition hover:shadow-lg hover:scale-[1.01] hover:ring-2 hover:ring-purple-400 hover:ring-opacity-50 hover:ring-offset-2 hover:ring-offset-gray-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-800">Net Profit</CardTitle>
-            <TrendingUp className="h-4 w-4 text-gray-700" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">Rp 7.731.890</div>
-            <p className="text-xs text-gray-600">+12.5% from last month</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white border shadow-md rounded-xl transition hover:shadow-lg hover:scale-[1.01] hover:ring-2 hover:ring-purple-400 hover:ring-opacity-50 hover:ring-offset-2 hover:ring-offset-gray-100">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-800">Active Products</CardTitle>
-            <Package className="h-4 w-4 text-gray-700" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">45</div>
-            <p className="text-xs text-gray-600">+3 new this month</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Main Grid Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Left Column */}
+        <div className="lg:col-span-2 space-y-6">
+            <Card className="bg-white/80 backdrop-blur-sm border-purple-200/80 rounded-2xl shadow-lg shadow-purple-200/50">
+                <CardHeader>
+                    <CardTitle className="text-purple-900">Status Kesehatan</CardTitle>
+                </CardHeader>
+                <CardContent className="h-80">
+                   <HealthGaugeChart status={analysisData.prediction_status} />
+                </CardContent>
+            </Card>
 
-      {/* Revenue & Expenses Chart Section */}
-      <Card className="bg-white border shadow-md rounded-xl transition hover:shadow-lg hover:scale-[1.01] hover:ring-2 hover:ring-purple-400 hover:ring-opacity-50 hover:ring-offset-2 hover:ring-offset-gray-100">
-        <CardHeader>
-          <CardTitle className="text-gray-800">Revenue & Expenses Overview</CardTitle>
-          <CardDescription className="text-gray-600">Monthly financial performance</CardDescription>
-        </CardHeader>
-        <CardContent className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={chartData}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-              <XAxis dataKey="name" stroke="#666" />
-              <YAxis stroke="#666" />
-              <Tooltip />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="Revenue"
-                stroke="#8884d8"
-                activeDot={{ r: 8 }}
-                strokeWidth={2}
-              />
-              <Line
-                type="monotone"
-                dataKey="Expenses"
-                stroke="#82ca9d"
-                strokeWidth={2}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      {/* Recent Transactions Table Section */}
-      <Card className="bg-white border shadow-md rounded-xl transition hover:shadow-lg hover:scale-[1.01] hover:ring-2 hover:ring-purple-400 hover:ring-opacity-50 hover:ring-offset-2 hover:ring-offset-gray-100">
-        <CardHeader>
-          <CardTitle className="text-gray-800">Recent Transactions</CardTitle>
-          <CardDescription className="text-gray-600">Your latest financial activities</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                    Transaction ID
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                    Description
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                    Amount
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                    Type
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-100"> {/* Table body background changed to white/70 for more solid white */}
-                {recentTransactions.map((transaction) => (
-                  <tr key={transaction.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {transaction.id}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      {transaction.date}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      {transaction.description}
-                    </td>
-                    <td className={`px-6 py-4 whitespace-nowrap text-sm font-bold ${
-                      transaction.type === 'Income' ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {transaction.amount}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      {transaction.type}
-                    </td>
-                  </tr>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {kpiCards.map(kpi => (
+                    <Card key={kpi.title} className="bg-white/80 backdrop-blur-sm border-purple-200/80 rounded-2xl shadow-lg shadow-purple-200/50">
+                        <CardHeader>
+                            <CardTitle className="text-sm font-medium text-purple-900">{kpi.title}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-slate-800">{kpi.value}</div>
+                            <div className={`text-xs flex items-center mt-1 ${kpi.good ? 'text-green-600' : 'text-red-600'}`}>
+                                <kpi.Icon className="w-4 h-4 mr-1"/>
+                                {kpi.good ? 'Posisi Baik' : 'Butuh Perhatian'}
+                            </div>
+                        </CardContent>
+                    </Card>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+            </div>
+        </div>
+
+        {/* Right Column */}
+        <div className="lg:col-span-1 space-y-6">
+            <Card className="bg-white/80 backdrop-blur-sm border-purple-200/80 rounded-2xl shadow-lg shadow-purple-200/50">
+                <CardHeader>
+                    <CardTitle className="text-purple-900">Ringkasan Finansial</CardTitle>
+                </CardHeader>
+                <CardContent className="h-60">
+                    <FinancialBarChart data={financialBarData} />
+                </CardContent>
+            </Card>
+            <Card className="bg-white/80 backdrop-blur-sm border-purple-200/80 rounded-2xl shadow-lg shadow-purple-200/50">
+                <CardHeader>
+                    <CardTitle className="text-purple-900">Struktur Modal</CardTitle>
+                </CardHeader>
+                <CardContent className="h-60">
+                    <EquityPieChart data={equityPieData} />
+                </CardContent>
+            </Card>
+             <Card className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl shadow-lg shadow-purple-300">
+                <CardHeader>
+                    <CardTitle>Rekomendasi AI</CardTitle>
+                </CardHeader>
+                <CardContent className="text-purple-100">
+                    {getRecommendation(analysisData.prediction_status)}
+                </CardContent>
+            </Card>
+        </div>
+
+      </div>
     </div>
   );
 }
