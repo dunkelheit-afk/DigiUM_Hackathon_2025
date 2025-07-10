@@ -112,9 +112,12 @@ export default function UmkmDashboardPage() {
         }
         const data: AnalysisData = await response.json();
         setAnalysisData(data);
-      } catch (err: any) {
-        setError(err.message);
-        setAnalysisData(null);
+        } catch (err: unknown) {
+          if (err instanceof Error) {
+            setError(err.message);
+          } else {
+            setError('Terjadi kesalahan yang tidak diketahui.');
+          }
       } finally {
         setIsLoading(false);
       }
