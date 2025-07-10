@@ -1,19 +1,25 @@
-// app/api/auth/register/route.ts
-import { signUp } from '@/backend/services/authService';
+// app/auth/register/route.ts
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const { error } = await signUp(body);
+  const requestUrl = new URL(request.url);
+  const formData = await request.formData();
+  const email = String(formData.get('email'));
+  const password = String(formData.get('password'));
+  const supabase = createRouteHandlerClient({ cookies });
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
+  // PERBAIKAN: 'error' dihapus dari proses destructuring
+  await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${requestUrl.origin}/auth/callback`,
+    },
+  });
 
-    return NextResponse.json({ message: 'Registration successful. Please check your email to verify.' });
-  } catch (error) {
-    // Tangani error jika JSON tidak valid, dll.
-    return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
-  }
+  return NextResponse.redirect(requestUrl.origin, {
+    status: 301,
+  });
 }

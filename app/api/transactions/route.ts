@@ -1,36 +1,46 @@
+// app/api/transactions/route.ts
+
+// PERBAIKAN: Impor CookieOptions yang tidak terpakai dihapus
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
-export async function POST(request: Request) {
-  const { tanggal, deskripsi, kategori, jumlah } = await request.json();
-  
-  const cookieStore = cookies();
-  const supabase = createServerClient(/* ...konfigurasi Anda... */);
+export async function GET() {
+  const cookieStore = cookies(); // Panggil cookies() sekali di atas
 
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        // Gunakan cookieStore yang sudah diambil di dalam metode get
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+      },
+    }
+  );
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return new NextResponse(JSON.stringify({ message: 'Unauthorized' }), { status: 401 });
+    }
+
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('tanggal', { ascending: false });
+
+    if (error) throw error;
+
+    return NextResponse.json(data);
+  } catch (error: any) {
+    return new NextResponse(
+      JSON.stringify({ message: 'Error fetching transactions', error: error.message }),
+      { status: 500 }
+    );
   }
-
-  // Menyimpan data ke tabel 'transactions'
-  const { data, error } = await supabase
-    .from('transactions')
-    .insert({
-      user_id: session.user.id,
-      tanggal,
-      deskripsi,
-      kategori,
-      jumlah,
-    })
-    .select() // Penting: Mengambil kembali data yang baru saja dibuat
-    .single();
-
-  if (error) {
-    console.error('Supabase Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-  
-  // Mengembalikan data baru ke frontend agar bisa langsung ditampilkan
-  return NextResponse.json(data);
 }

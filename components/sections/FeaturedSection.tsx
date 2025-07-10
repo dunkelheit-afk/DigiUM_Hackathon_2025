@@ -1,99 +1,64 @@
-// components/sections/FeaturesSection.tsx
+// components/sections/FeaturedSection.tsx
 'use client';
 
-import Image from 'next/image';
-import Link from 'next/link';
-import { useInView } from '@/hooks/useInView';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useRef } from 'react';
+import { motion, useInView } from 'framer-motion';
+import { BarChart, BookUser, Cpu } from 'lucide-react';
 
-export default function FeaturesSection() {
-  const features = [
-    {
-      title: "Digital Accounting",
-      subtitle: "Easy, fast, and accurate digital bookkeeping for MSMEs.",
-      description: "Manage your financial records effortlessly. From income and expenses to profit and loss statements, DigiUM automates the complexities of bookkeeping, saving you time and reducing errors. Access real-time financial insights to make informed decisions for your business growth.",
-      image: "/akutansi.svg",
-      alt: "Digital Accounting Dashboard",
-      reverse: false, // Text left, Image right
-      id: "digital-accounting" // Added unique ID for this feature
-    },
-    {
-      title: "MSME Showcase",
-      subtitle: "Promote your products through exhibitions and collaborative events.",
-      description: "Expand your market reach and connect with new customers. DigiUM provides a platform for your products to be featured in virtual exhibitions and collaborative marketing campaigns. Showcase your unique offerings and participate in events designed to boost your brand visibility.",
-      image: "/showcase.svg",
-      alt: "MSME Product Showcase",
-      reverse: true, // Image left, Text right
-      id: "msme-showcase-feature" // Added unique ID for this feature
-    },
-    {
-      title: "Funding & Investment",
-      subtitle: "Access various funding sources and connect with impact-driven investors.",
-      description: "Unlock new opportunities for growth with flexible funding options. DigiUM connects you with a network of investors and financial institutions ready to support UMKM. Get access to tailored financing solutions and expert guidance to secure the capital you need.",
-      image: "/inves.svg",
-      alt: "Funding and Investment Connection",
-      reverse: false, // Text left, Image right
-      id: "funding-feature" // Added unique ID for this feature
-    },
-  ];
+interface Feature {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+}
+
+const features: Feature[] = [
+    { icon: Cpu, title: 'Analisis Cepat & Akurat', description: 'Manfaatkan AI untuk menganalisis data keuangan Anda dalam hitungan detik dan dapatkan status kesehatan bisnis yang jelas.' },
+    { icon: BarChart, title: 'Visualisasi Data Intuitif', description: 'Lihat performa bisnis melalui grafik dan bagan yang mudah dibaca, dari margin laba hingga perputaran aset.' },
+    { icon: BookUser, title: 'Rekomendasi Terpersonalisasi', description: 'Dapatkan saran konkret berbasis data untuk meningkatkan profitabilitas, efisiensi, dan pertumbuhan bisnis Anda.' },
+];
+
+const FeatureCard = ({ feature, index }: { feature: Feature; index: number }) => {
+  const ref = useRef(null);
+  // PERBAIKAN: useInView dipanggil di level atas komponen
+  const isInView = useInView(ref, { once: true, amount: 0.5 });
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 50 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5, delay: index * 0.2 } },
+  };
 
   return (
-    <section id="features" className="w-full py-20 bg-gray-50 text-gray-900 shadow-xl">
-      <div className="max-w-6xl mx-auto px-6">
-        <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-16">
-          Our <span className="text-purple-600">Services</span>
-        </h2>
-
-        <div className="space-y-60"> {/* This space-y-24 sets gap between feature divs */}
-          {features.map((feature, index) => {
-            // Observer for each feature section to trigger animations
-            const [featureRef, isFeatureInView] = useInView({ threshold: 0.01 });
-
-            // Animation classes for text and image
-            const textAnimationClasses = isFeatureInView ? "animate-in fade-in slide-in-from-bottom duration-700 ease-out" : "opacity-0";
-            const imageAnimationClasses = isFeatureInView ? `animate-in fade-in ${feature.reverse ? 'slide-in-from-left' : 'slide-in-from-right'} duration-1000 ease-out delay-100` : "opacity-0";
-
-            return (
-              <div
-                key={index}
-                id={feature.id} // Added ID to the feature's div
-                ref={featureRef} // Ref for Intersection Observer
-                // Add mb-24 to each feature div for consistent bottom spacing, except the last one
-                className={`flex flex-col items-center gap-12 md:gap-24 ${
-                  feature.reverse ? 'md:flex-row-reverse' : 'md:flex-row'
-                } ${index < features.length - 1 ? 'mb-24' : ''}`}
-              >
-                {/* Text Column */}
-                <div className={`md:w-1/2 text-center md:text-left ${textAnimationClasses}`}>
-                  <h3 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
-                    {feature.title}
-                  </h3>
-                  <p className="text-xl font-semibold text-purple-600 mb-6">
-                    {feature.subtitle}
-                  </p>
-                  <p className="text-base text-gray-600 leading-relaxed mb-8">
-                    {feature.description}
-                  </p>
-                  <Link href={`/features/${feature.id}`} className="text-purple-600 hover:text-purple-700 font-semibold transition-colors duration-200">
-                    Learn More &rarr;
-                  </Link>
-                </div>
-
-                {/* Image Column */}
-                <div className={`md:w-1/2 ${imageAnimationClasses}`}>
-                  <Image
-                    src={feature.image}
-                    alt={feature.alt}
-                    width={600}
-                    height={400}
-                    className="mx-auto w-full max-w-full h-auto object-contain"
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
+    <motion.div
+      ref={ref}
+      variants={cardVariants}
+      initial="hidden"
+      animate={isInView ? "visible" : "hidden"} // Animate saat masuk ke view
+      className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-purple-200/50 transition-shadow duration-300 border border-gray-100"
+    >
+      <div className="bg-purple-100 text-purple-600 w-12 h-12 rounded-lg flex items-center justify-center">
+        <feature.icon className="w-6 h-6" />
       </div>
-    </section>
+      <h3 className="mt-6 text-xl font-bold text-gray-900">{feature.title}</h3>
+      <p className="mt-2 text-gray-600">{feature.description}</p>
+    </motion.div>
   );
-}
+};
+
+
+export const FeaturedSection = () => {
+    return (
+        <section id="features" className="py-20 bg-gray-50">
+            <div className="container mx-auto px-4">
+                <div className="text-center mb-12">
+                    <h2 className="text-3xl font-bold text-gray-900">Platform Lengkap untuk Pertumbuhan UMKM</h2>
+                    <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">Dari analisis otomatis hingga pencatatan transaksi, semua yang Anda butuhkan dalam satu dasbor.</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {features.map((feature, index) => (
+                        <FeatureCard key={index} feature={feature} index={index} />
+                    ))}
+                </div>
+            </div>
+        </section>
+    );
+};

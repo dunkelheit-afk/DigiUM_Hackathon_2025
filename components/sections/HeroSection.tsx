@@ -1,81 +1,76 @@
+// components/sections/HeroSection.tsx
 'use client';
-
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+import { ArrowRight, Star } from "lucide-react";
+import Image from "next/image"; // Impor komponen Image
 import Link from "next/link";
-import { useInView } from '@/hooks/useInView'; // Impor hook useInView yang baru dibuat
 
-export default function HeroSection() {
-  // Gunakan useInView hook untuk mendeteksi apakah section terlihat
-  const [sectionRef, isSectionInView] = useInView({
-    threshold: 0.1, // Picu ketika 10% dari section terlihat
-  });
-
-  // Fungsi helper untuk mengaplikasikan kelas animasi berdasarkan isSectionInView
-  const getAnimationClasses = (delay: number) =>
-    isSectionInView
-      ? `animate-in fade-in slide-in-from-bottom duration-700 ease-out delay-${delay}`
-      : 'opacity-0'; // Sembunyikan elemen jika belum terlihat
-
-  // Fungsi helper untuk animasi gambar (slide-in-from-right)
-  const getImageAnimationClasses = () =>
-    isSectionInView
-      ? `animate-in fade-in slide-in-from-right duration-1000 delay-500 ease-out`
-      : 'opacity-0'; // Sembunyikan gambar jika belum terlihat
-
+export const HeroSection = () => {
   return (
-    // Tambahkan ref ke section utama
-    <section id= "hero" ref={sectionRef} className="w-full pt-16 pb-20 bg-white text-gray-900">
-      <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center md:justify-between gap-24">
-        {/* Kolom Kiri: Tulisan dan Tombol */}
-        <div className="md:w-1/2 text-left">
-          {/* Judul Utama dengan Animasi */}
-          <h1 className={`text-4xl md:text-5xl font-extrabold leading-tight mb-2 ${getAnimationClasses(0)}`}>
-            <span className="block text-gray-900">Smarter Finance for</span>
-            <span className="block text-purple-600">Growing Businesses.</span>
-          </h1>
-          {/* Sub-judul dengan Animasi dan Delay */}
-          <h2 className={`text-xl md:text-2xl font-semibold text-gray-700 mb-8 ${getAnimationClasses(100)}`}>
-            Empowering Indonesia's UMKM.
-          </h2>
+    <section className="relative bg-gradient-to-br from-purple-50 via-white to-indigo-50">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid lg:grid-cols-2 gap-12 items-center py-20 lg:py-32">
+          {/* Kolom Kiri */}
+          <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7 }}
+            className="text-center lg:text-left"
+          >
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight">
+              Analisis Keuangan <span className="text-purple-600">Instan</span> untuk UMKM Anda
+            </h1>
+            <p className="mt-6 text-lg text-gray-600 max-w-xl mx-auto lg:mx-0">
+              Dapatkan wawasan mendalam tentang kesehatan finansial bisnis Anda dengan satu klik. Ubah data mentah menjadi keputusan strategis.
+            </p>
+            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+                <Link href="/dashboard">
+                    <Button size="lg" className="bg-purple-600 text-white hover:bg-purple-700 shadow-lg w-full sm:w-auto">
+                        Mulai Analisis Sekarang <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                </Link>
+                <Link href="#features">
+                    <Button size="lg" variant="outline" className="text-purple-600 border-purple-600 hover:bg-purple-100 w-full sm:w-auto">
+                        Pelajari Fitur
+                    </Button>
+                </Link>
+            </div>
+            <div className="mt-8 flex items-center justify-center lg:justify-start gap-4">
+                <div className="flex -space-x-2">
+                    <Image className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="/images/avatars/budi.jpg" alt="User" width={40} height={40}/>
+                    <Image className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="/images/avatars/siti.jpg" alt="User" width={40} height={40}/>
+                    <Image className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="/images/avatars/eko.jpg" alt="User" width={40} height={40}/>
+                </div>
+                <div>
+                    <div className="flex items-center">
+                        {[...Array(5)].map((_, i) => <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />)}
+                    </div>
+                    {/* PERBAIKAN: ' diganti menjadi &apos; */}
+                    <p className="text-sm text-gray-600 font-medium">Dipercaya oleh 1,000+ UMKM di seluruh Indonesia</p>
+                </div>
+            </div>
+          </motion.div>
 
-          {/* Deskripsi dengan Animasi dan Delay */}
-          <p className={`text-base md:text-lg text-gray-600 max-w-xl mb-8 leading-normal ${getAnimationClasses(200)}`}>
-            Digi<span className="text-purple-700 font-semibold">UM</span> helps you <span className="font-semibold text-purple-700">streamline your finances</span>,
-            <span className="font-semibold text-purple-700"> track growth</span>, and
-            <span className="font-semibold text-purple-700"> connect with impact-driven investors</span>.
-          </p>
-
-          {/* Wadah untuk tombol-tombol aksi dengan Animasi dan Delay */}
-          <div className={`flex justify-start mb-16 md:mb-0 ${getAnimationClasses(300)}`}>
-            {/* Login Button (Outline Style) */}
-            <Button
-              size="lg"
-              className="
-                border border-purple-600
-                text-purple-600 bg-white
-                hover:bg-purple-600 hover:text-white
-                px-10 py-6 rounded-xl shadow-md
-                transition-all duration-200 ease-out
-                hover:scale-105 hover:-translate-y-1 hover:shadow-xl
-              "
-              asChild
-            >
-              <Link href="/register">
-                Get Started
-              </Link>
-            </Button>
-          </div>
-        </div>
-
-        {/* Kolom Kanan: Gambar dengan Animasi */}
-        <div className="md:w-1/2 mt-12 md:mt-0 md:ml-auto">
-          <img
-            src="/awal.png"
-            alt="Dashboard Preview UMKMVerse"
-            className={`mx-auto w-full max-w-full ${getImageAnimationClasses()}`}
-          />
+          {/* Kolom Kanan */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.7, delay: 0.2 }}
+            className="mt-10 lg:mt-0"
+          >
+            {/* PERBAIKAN: <img> diganti menjadi <Image> */}
+            <Image
+              src="/images/hero-dashboard-preview.png"
+              alt="Pratinjau Dashboard Analisis Keuangan"
+              width={1200}
+              height={800}
+              className="rounded-xl shadow-2xl ring-1 ring-gray-900/10"
+              priority
+            />
+          </motion.div>
         </div>
       </div>
     </section>
   );
-}
+};
