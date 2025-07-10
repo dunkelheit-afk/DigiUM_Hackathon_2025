@@ -1,3 +1,4 @@
+// app/(umkm)/financial-analysis/page.tsx
 'use client';
 
 import React, { useState, useEffect, FormEvent, useRef, useLayoutEffect } from 'react';
@@ -29,8 +30,14 @@ interface FinancialResults {
   prediction_status: string;
 }
 
+interface CurrencyInputProps {
+  value: number | '';
+  setter: (val: number | '') => void;
+  [key: string]: unknown; // Allow other props
+}
+
 // --- KOMPONEN INPUT MATA UANG YANG DIPERBAIKI ---
-const CurrencyInput = ({ value, setter, ...props }: { value: number | '', setter: (val: number | '') => void, [key: string]: any }) => {
+const CurrencyInput = ({ value, setter, ...props }: CurrencyInputProps) => {
   const [displayValue, setDisplayValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const [cursor, setCursor] = useState<number | null>(null);
@@ -44,7 +51,7 @@ const CurrencyInput = ({ value, setter, ...props }: { value: number | '', setter
     } else if (value === 0) {
       setDisplayValue('0');
     }
-  }, [value]);
+  }, [value, displayValue]);
 
   useLayoutEffect(() => {
     if (cursor !== null && inputRef.current) {
@@ -123,6 +130,20 @@ export default function UnifiedFinancePage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
 
+  const fetchTransactions = React.useCallback(async (currentUser: User | null) => {
+    if (!currentUser) return;
+    setIsLoadingTransactions(true);
+    try {
+      const { data, error } = await supabase.from('transactions').select('*').order('tanggal', { ascending: false });
+      if (error) throw error;
+      setTransactions(data || []);
+    } catch (error) {
+      console.error('Gagal memuat transaksi:', error);
+    } finally {
+      setIsLoadingTransactions(false);
+    }
+  }, [supabase]);
+
   // --- EFEK & FUNGSI DATA ---
   useEffect(() => {
     const checkUser = async () => {
@@ -139,7 +160,7 @@ export default function UnifiedFinancePage() {
       }
     });
     return () => subscription.unsubscribe();
-  }, [supabase]);
+  }, [supabase, fetchTransactions]);
 
   useEffect(() => {
     if (user) {
@@ -148,21 +169,7 @@ export default function UnifiedFinancePage() {
       setTransactions([]);
       setIsLoadingTransactions(false);
     }
-  }, [user, isAuthLoading]);
-
-  const fetchTransactions = async (currentUser: User | null) => {
-    if (!currentUser) return;
-    setIsLoadingTransactions(true);
-    try {
-      const { data, error } = await supabase.from('transactions').select('*').order('tanggal', { ascending: false });
-      if (error) throw error;
-      setTransactions(data || []);
-    } catch (error) {
-      console.error('Gagal memuat transaksi:', error);
-    } finally {
-      setIsLoadingTransactions(false);
-    }
-  };
+  }, [user, isAuthLoading, fetchTransactions]);
 
   const handleSaveTransaction = async (e: FormEvent) => {
     e.preventDefault();
@@ -185,8 +192,10 @@ export default function UnifiedFinancePage() {
       setDescription('');
       setCategory('');
       setAmount('');
-    } catch (error: any) {
-      alert('Gagal menyimpan transaksi: ' + error.message);
+    } catch (error) {
+        if (error instanceof Error) {
+            alert('Gagal menyimpan transaksi: ' + error.message);
+        }
     } finally {
       setIsSubmitting(false);
     }
@@ -234,8 +243,10 @@ export default function UnifiedFinancePage() {
       setAnalysisResults(allResults);
       setRevenue(''); setCogs(''); setOperatingExpenses(''); setTotalAssets('');
       setCash(''); setTotalLiabilities(''); setTotalEquity('');
-    } catch (err: any) {
-      setAnalysisError(err.message);
+    } catch (err) {
+        if (err instanceof Error) {
+            setAnalysisError(err.message);
+        }
     } finally {
       setIsAnalyzing(false);
     }

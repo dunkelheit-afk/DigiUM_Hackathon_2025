@@ -73,9 +73,14 @@ export async function GET() {
 
     return NextResponse.json(responseData);
 
-  } catch (error: any) {
-    return new NextResponse(
-      JSON.stringify({ message: 'Terjadi kesalahan pada server', error: error.message }), { status: 500 }
-    );
+  } catch (error: unknown) {
+      if (error instanceof Error) {
+        return new NextResponse(
+            JSON.stringify({ message: 'Terjadi kesalahan pada server', error: error.message }), { status: 500 }
+          );
+      }
+      return new NextResponse(
+        JSON.stringify({ message: 'Terjadi kesalahan pada server' }), { status: 500 }
+      );
   }
 }
