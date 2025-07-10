@@ -13,6 +13,7 @@ import { motion } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 
+
 // --- DEFINISI TIPE ---
 interface Transaction {
   id: string;
@@ -27,18 +28,6 @@ interface Transaction {
 interface FinancialResults {
   prediction_status: string;
 }
-
-// --- FUNGSI HELPER UNTUK FORMAT ANGKA ---
-const formatRupiah = (value: number | ''): string => {
-  if (value === '' || value === null || isNaN(Number(value))) return '';
-  return new Intl.NumberFormat('id-ID').format(Number(value));
-};
-
-const parseRupiah = (value: string): number | '' => {
-  if (value === '') return '';
-  const numericString = value.replace(/[^0-9]/g, '');
-  return numericString ? Number(numericString) : '';
-};
 
 // --- KOMPONEN INPUT MATA UANG YANG DIPERBAIKI ---
 const CurrencyInput = ({ value, setter, ...props }: { value: number | '', setter: (val: number | '') => void, [key: string]: any }) => {
@@ -228,7 +217,7 @@ export default function UnifiedFinancePage() {
     }
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/predict', {
+      const response = await fetch('/api/predict', { // URL diubah menjadi path relatif
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
