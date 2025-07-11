@@ -13,7 +13,7 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      // Ganti 'profiles' dengan nama tabel Anda
+      // Definisi untuk tabel 'profiles'
       profiles: {
         Row: {
           id: string
@@ -48,7 +48,114 @@ export type Database = {
           }
         ]
       }
-      // Tambahkan definisi tabel lain di sini...
+
+      // PERBAIKAN: Menambahkan definisi untuk tabel 'transactions'
+      transactions: {
+        Row: {
+          id: string
+          created_at: string
+          user_id: string
+          tanggal: string
+          deskripsi: string
+          kategori: string
+          jumlah: number
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          user_id: string
+          tanggal: string
+          deskripsi: string
+          kategori: string
+          jumlah: number
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          user_id?: string
+          tanggal?: string
+          deskripsi?: string
+          kategori?: string
+          jumlah?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+
+      // PERBAIKAN: Menambahkan definisi untuk tabel 'analysis_records'
+      analysis_records: {
+        Row: {
+            id: number
+            created_at: string
+            user_id: string
+            revenue: number
+            cogs: number
+            operating_expenses: number
+            total_assets: number
+            cash: number
+            total_liabilities: number
+            total_equity: number
+            prediction_status: string
+            net_profit_margin: number
+            current_ratio: number
+            debt_to_equity: number
+            roa: number
+            asset_turnover: number
+            recommendation: string
+        }
+        Insert: {
+            id?: number
+            created_at?: string
+            user_id: string
+            revenue: number
+            cogs: number
+            operating_expenses: number
+            total_assets: number
+            cash: number
+            total_liabilities: number
+            total_equity: number
+            prediction_status: string
+            net_profit_margin: number
+            current_ratio: number
+            debt_to_equity: number
+            roa: number
+            asset_turnover: number
+            recommendation: string
+        }
+        Update: {
+            id?: number
+            created_at?: string
+            user_id?: string
+            revenue?: number
+            cogs?: number
+            operating_expenses?: number
+            total_assets?: number
+            cash?: number
+            total_liabilities?: number
+            total_equity?: number
+            prediction_status?: string
+            net_profit_margin?: number
+            current_ratio?: number
+            debt_to_equity?: number
+            roa?: number
+            asset_turnover?: number
+            recommendation?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_records_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
