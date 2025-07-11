@@ -16,24 +16,19 @@
     "noImplicitAny": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    
-
     "plugins": [
       {
         "name": "next"
       }
     ],
-    "baseUrl": ".", // Pastikan baris ini ada dan tidak ada duplikasi
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "@/components/*": ["components/*"],
-      "@/hooks/*": ["hooks/*"],
-      "@/lib/*": ["lib/*"]
-
+      "@/*": ["./*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/(umkm)/products", "app/(umkm)/transactions", "(middleware.ts)"],
-  "exclude": ["node_modules"]
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": [
+    "node_modules",
+    "supabase/functions/**/*" // Baris penting ini tetap dipertahankan
+  ]
 }
-
-
