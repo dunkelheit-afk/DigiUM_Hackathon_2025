@@ -1,8 +1,0 @@
-fastapi
-uvicorn
-pandas
-scikit-learn
-joblib
-requests
-python-dotenv
-google-generativeai

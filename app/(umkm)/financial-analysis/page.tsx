@@ -1,7 +1,7 @@
 // app/(umkm)/financial-analysis/page.tsx
 'use client';
 
-import React, { useState, useEffect, FormEvent, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, FormEvent, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from '@/components/ui/label';
@@ -28,19 +28,19 @@ interface Transaction {
 
 interface FinancialResults {
   prediction_status: string;
+  recommendation: string;
 }
 
 interface CurrencyInputProps {
   value: number | '';
   setter: (val: number | '') => void;
-  [key: string]: unknown; // Allow other props
+  [key: string]: unknown;
 }
 
-// --- KOMPONEN INPUT MATA UANG YANG DIPERBAIKI ---
+// --- KOMPONEN INPUT MATA UANG ---
 const CurrencyInput = ({ value, setter, ...props }: CurrencyInputProps) => {
   const [displayValue, setDisplayValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-  const [cursor, setCursor] = useState<number | null>(null);
 
   useEffect(() => {
     const formatted = new Intl.NumberFormat('id-ID').format(Number(value) || 0);
@@ -53,12 +53,6 @@ const CurrencyInput = ({ value, setter, ...props }: CurrencyInputProps) => {
     }
   }, [value, displayValue]);
 
-  useLayoutEffect(() => {
-    if (cursor !== null && inputRef.current) {
-      inputRef.current.setSelectionRange(cursor, cursor);
-    }
-  }, [cursor, displayValue]);
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value;
     const numericValue = rawValue.replace(/[^0-9]/g, '');
@@ -68,21 +62,8 @@ const CurrencyInput = ({ value, setter, ...props }: CurrencyInputProps) => {
         setDisplayValue('');
         return;
     }
-
     const number = parseInt(numericValue, 10);
-    const cursorPosition = e.target.selectionStart || 0;
-    const beforeLength = rawValue.length;
-    const newFormattedValue = new Intl.NumberFormat('id-ID').format(number);
-    const afterLength = newFormattedValue.length;
-    
-    let lengthDelta = afterLength - beforeLength;
-    if (lengthDelta === -1 && rawValue.charAt(cursorPosition - 1) === '.') {
-        lengthDelta = 0;
-    }
-    const newCursorPosition = cursorPosition + lengthDelta;
-
-    setDisplayValue(newFormattedValue);
-    setCursor(newCursorPosition);
+    setDisplayValue(new Intl.NumberFormat('id-ID').format(number));
     setter(number);
   };
 
@@ -226,13 +207,17 @@ export default function UnifiedFinancePage() {
     }
 
     try {
-      const response = await fetch('/api/predict', { // URL diubah menjadi path relatif
+      // PERUBAHAN PENTING: Menggunakan URL API dari Render
+      const response = await fetch('https://digium-hackathon-2025.onrender.com/api/predict', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
-      if (!response.ok) throw new Error('Gagal mendapatkan hasil dari API model lokal.');
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || 'Gagal mendapatkan hasil dari API.');
+      }
       
       const allResults = await response.json();
       const dataForSupabase = { ...formData, ...allResults, user_id: user.id };
@@ -370,7 +355,6 @@ export default function UnifiedFinancePage() {
                 </div>
               </TabsContent>
 
-              {/* === KODE TAB ANALISIS DIKEMBALIKAN === */}
               <TabsContent value="analysis" className="mt-6">
                 <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.05 } } }} className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-8">
                   {analysisInputFields.map((field) => (
@@ -400,6 +384,7 @@ export default function UnifiedFinancePage() {
                 {analysisResults && (
                   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg text-center">
                     <p className="text-green-800 font-medium">Analisis berhasil! Status kesehatan UMKM Anda adalah: <span className="font-bold">{analysisResults.prediction_status}</span>.</p>
+                    <p className="mt-2 text-sm text-gray-600">Lihat rekomendasi lengkap di dashboard Anda.</p>
                     <Button variant="outline" className="mt-4 border-purple-600 text-purple-600 hover:bg-purple-100" onClick={() => window.location.href = '/dashboard'}>
                       <ArrowLeftCircle className="w-4 h-4 mr-2" /> Kembali ke Dashboard
                     </Button>
