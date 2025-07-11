@@ -1,22 +1,36 @@
 // app/auth/login/route.ts
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
-import { NextResponse } from 'next/server';
+
+import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 
 export async function POST(request: Request) {
-  const requestUrl = new URL(request.url);
-  const formData = await request.formData();
-  const email = String(formData.get('email'));
-  const password = String(formData.get('password'));
-  const supabase = createRouteHandlerClient({ cookies });
+  const requestUrl = new URL(request.url)
+  const formData = await request.formData()
+  const email = String(formData.get('email'))
+  const password = String(formData.get('password'))
+  
+  // PERBAIKAN: Menggunakan createClient dari @supabase/ssr
+  const cookieStore = cookies()
+  const supabase = createClient(cookieStore)
 
-  // PERBAIKAN: 'error' dihapus dari proses destructuring
-  await supabase.auth.signInWithPassword({
+  const { error } = await supabase.auth.signInWithPassword({
     email,
     password,
-  });
+  })
 
-  return NextResponse.redirect(requestUrl.origin, {
+  if (error) {
+    // Redirect kembali ke halaman login dengan pesan error
+    return NextResponse.redirect(
+      `${requestUrl.origin}/login?error=Could not authenticate user`,
+      {
+        status: 301,
+      }
+    )
+  }
+
+  // Redirect ke dashboard setelah login berhasil
+  return NextResponse.redirect(`${requestUrl.origin}/dashboard`, {
     status: 301,
-  });
+  })
 }

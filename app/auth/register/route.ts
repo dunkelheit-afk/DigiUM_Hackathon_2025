@@ -1,25 +1,42 @@
 // app/auth/register/route.ts
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
-import { NextResponse } from 'next/server';
+
+import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 
 export async function POST(request: Request) {
-  const requestUrl = new URL(request.url);
-  const formData = await request.formData();
-  const email = String(formData.get('email'));
-  const password = String(formData.get('password'));
-  const supabase = createRouteHandlerClient({ cookies });
+  const requestUrl = new URL(request.url)
+  const formData = await request.formData()
+  const email = String(formData.get('email'))
+  const password = String(formData.get('password'))
+  
+  // PERBAIKAN: Menggunakan createClient dari @supabase/ssr
+  const cookieStore = cookies()
+  const supabase = createClient(cookieStore)
 
-  // PERBAIKAN: 'error' dihapus dari proses destructuring
-  await supabase.auth.signUp({
+  const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
+      // URL untuk konfirmasi email
       emailRedirectTo: `${requestUrl.origin}/auth/callback`,
     },
-  });
+  })
 
-  return NextResponse.redirect(requestUrl.origin, {
-    status: 301,
-  });
+  if (error) {
+    return NextResponse.redirect(
+      `${requestUrl.origin}/register?error=Could not sign up user`,
+      {
+        status: 301,
+      }
+    )
+  }
+
+  // Redirect ke halaman login dengan pesan untuk cek email
+  return NextResponse.redirect(
+    `${requestUrl.origin}/login?message=Check email to continue sign in process`,
+    {
+      status: 301,
+    }
+  )
 }
