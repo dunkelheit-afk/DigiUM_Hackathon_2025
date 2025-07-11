@@ -1,21 +1,36 @@
 // app/api/transactions/route.ts
 
-// PERBAIKAN: Impor CookieOptions yang tidak terpakai dihapus
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  const cookieStore = cookies(); // Panggil cookies() sekali di atas
-
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        // Gunakan cookieStore yang sudah diambil di dalam metode get
-        get(name: string) {
+        // PERBAIKAN: Membuat handler menjadi async dan menggunakan 'await'
+        async get(name: string) {
+          const cookieStore = await cookies();
           return cookieStore.get(name)?.value;
+        },
+        async set(name: string, value: string, options: CookieOptions) {
+          const cookieStore = await cookies();
+          try {
+            cookieStore.set({ name, value, ...options });
+          } catch (error) {
+            // Ini bisa diabaikan jika 'set' dipanggil dari Server Component,
+            // karena middleware akan menangani refresh sesi.
+          }
+        },
+        async remove(name: string, options: CookieOptions) {
+          const cookieStore = await cookies();
+          try {
+            cookieStore.set({ name, value: '', ...options });
+          } catch (error) {
+            // Ini bisa diabaikan jika 'remove' dipanggil dari Server Component.
+          }
         },
       },
     }
@@ -34,13 +49,22 @@ export async function GET() {
       .eq('user_id', user.id)
       .order('tanggal', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error fetching transactions:', error);
+      throw error;
+    }
 
     return NextResponse.json(data);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+        return new NextResponse(
+            JSON.stringify({ message: 'Error fetching transactions', error: error.message }),
+            { status: 500 }
+        );
+    }
     return new NextResponse(
-      JSON.stringify({ message: 'Error fetching transactions', error: error.message }),
-      { status: 500 }
+        JSON.stringify({ message: 'An unknown error occurred' }),
+        { status: 500 }
     );
   }
 }
