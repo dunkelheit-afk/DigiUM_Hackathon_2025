@@ -1,6 +1,5 @@
 import os
 import joblib
-import pandas as pd
 import requests
 import google.generativeai as genai
 from fastapi import FastAPI
@@ -15,13 +14,11 @@ load_dotenv()
 app = FastAPI()
 
 # --- Konfigurasi CORS ---
-# Dapatkan URL Vercel dari environment variable (otomatis diatur oleh Vercel)
 VERCEL_URL = os.getenv('VERCEL_URL')
 origins = [
     "http://localhost:3000",
 ]
 if VERCEL_URL:
-    # Tambahkan URL frontend Vercel Anda ke daftar origin
     origins.append(f"https://{VERCEL_URL}")
 
 app.add_middleware(
@@ -37,7 +34,6 @@ try:
     GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
     if not GOOGLE_API_KEY:
         raise ValueError("GOOGLE_API_KEY tidak ditemukan di environment variables")
-    # PERBAIKAN: Menggunakan variabel GOOGLE_API_KEY, bukan kunci yang ditulis langsung.
     genai.configure(api_key=GOOGLE_API_KEY)
 except Exception as e:
     print(f"Peringatan: Gagal mengkonfigurasi Gemini AI. Rekomendasi tidak akan tersedia. Error: {e}")
@@ -70,7 +66,6 @@ def download_model():
         print(f"Gagal memuat model dari file: {e}")
         model = None
 
-# Panggil fungsi download saat aplikasi pertama kali dijalankan
 download_model()
 
 
@@ -80,18 +75,17 @@ class RawFinancialData(BaseModel):
     cogs: float
     operating_expenses: float
     total_assets: float
-    cash: float # Menambahkan 'cash' yang dibutuhkan untuk rasio lancar
+    cash: float
     total_liabilities: float
     total_equity: float
 
-# Endpoint ini akan dipanggil oleh frontend Anda
 @app.post("/api/predict")
 def predict_status(data: RawFinancialData):
-    # Bagian 1: Prediksi Status Lokal
     if model is None:
         return {"error": "Model prediksi tidak tersedia."}, 500
     
     try:
+        # Bagian 1: Prediksi Status Lokal
         laba_bersih = data.revenue - data.cogs - data.operating_expenses
         net_profit_margin = laba_bersih / data.revenue if data.revenue > 0 else 0
         current_ratio = data.cash / data.total_liabilities if data.total_liabilities > 0 else 0
@@ -99,14 +93,21 @@ def predict_status(data: RawFinancialData):
         roa = laba_bersih / data.total_assets if data.total_assets > 0 else 0
         asset_turnover = data.revenue / data.total_assets if data.total_assets > 0 else 0
         
-        input_df = pd.DataFrame([{
-            'net_profit_margin': net_profit_margin,
-            'current_ratio': current_ratio,
-            'debt_to_equity': debt_to_equity,
-            'roa': roa,
-            'asset_turnover': asset_turnover
-        }])
-        predicted_status_label = model.predict(input_df)[0]
+        # PERBAIKAN: Membuat input untuk model tanpa menggunakan pandas
+        # Pastikan urutan ini SAMA PERSIS dengan urutan kolom saat training model
+        input_list = [
+            net_profit_margin,
+            current_ratio,
+            debt_to_equity,
+            roa,
+            asset_turnover
+        ]
+        
+        # Model scikit-learn mengharapkan input 2D (list of lists)
+        input_for_prediction = [input_list]
+        
+        predicted_status_label = model.predict(input_for_prediction)[0]
+
     except Exception as e:
         return {"error": f"Error saat prediksi lokal: {str(e)}"}, 400
 
@@ -129,7 +130,6 @@ def predict_status(data: RawFinancialData):
         recommendation_text = response.text
     except Exception as e:
         print(f"Gagal menghasilkan rekomendasi AI: {e}")
-        # Biarkan recommendation_text menggunakan nilai default jika gagal
 
     # Bagian 3: Mengembalikan Semua Hasil
     return {
@@ -142,7 +142,6 @@ def predict_status(data: RawFinancialData):
         "recommendation": recommendation_text
     }
 
-# Endpoint untuk health check
 @app.get("/")
 def root():
     return {"message": "API Prediksi & Rekomendasi Aktif"}
