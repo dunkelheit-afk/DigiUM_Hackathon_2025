@@ -10,7 +10,6 @@ export async function GET() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        // PERBAIKAN: Membuat handler menjadi async dan menggunakan 'await'
         async get(name: string) {
           const cookieStore = await cookies();
           return cookieStore.get(name)?.value;
@@ -19,7 +18,7 @@ export async function GET() {
           const cookieStore = await cookies();
           try {
             cookieStore.set({ name, value, ...options });
-          } catch (error) {
+          } catch { // PERBAIKAN: Variabel 'error' yang tidak digunakan telah dihapus.
             // Ini bisa diabaikan jika 'set' dipanggil dari Server Component,
             // karena middleware akan menangani refresh sesi.
           }
@@ -28,7 +27,7 @@ export async function GET() {
           const cookieStore = await cookies();
           try {
             cookieStore.set({ name, value: '', ...options });
-          } catch (error) {
+          } catch { // PERBAIKAN: Variabel 'error' yang tidak digunakan telah dihapus.
             // Ini bisa diabaikan jika 'remove' dipanggil dari Server Component.
           }
         },
