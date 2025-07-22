@@ -1,64 +1,119 @@
 // components/sections/FeaturedSection.tsx
 'use client';
 
-import React, { useRef } from 'react';
-import { motion, useInView } from 'framer-motion';
-import { BarChart, BookUser, Cpu } from 'lucide-react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
+import { BookCheck, Bot, Store } from 'lucide-react';
 
+// Mendefinisikan tipe data untuk setiap fitur
 interface Feature {
   icon: React.ElementType;
   title: string;
   description: string;
+  image: string;
 }
 
+// Data untuk tiga fitur utama Anda
 const features: Feature[] = [
-    { icon: Cpu, title: 'Analisis Cepat & Akurat', description: 'Manfaatkan AI untuk menganalisis data keuangan Anda dalam hitungan detik dan dapatkan status kesehatan bisnis yang jelas.' },
-    { icon: BarChart, title: 'Visualisasi Data Intuitif', description: 'Lihat performa bisnis melalui grafik dan bagan yang mudah dibaca, dari margin laba hingga perputaran aset.' },
-    { icon: BookUser, title: 'Rekomendasi Terpersonalisasi', description: 'Dapatkan saran konkret berbasis data untuk meningkatkan profitabilitas, efisiensi, dan pertumbuhan bisnis Anda.' },
+  {
+    icon: BookCheck,
+    title: "Pembukuan Digital",
+    description: "Catat setiap pemasukan dan pengeluaran dengan antarmuka yang intuitif. Lupakan kerumitan pencatatan manual dan dapatkan laporan laba rugi otomatis.",
+    image: "/fitur-pembukuan.png",
+  },
+  {
+    icon: Bot,
+    title: "Analisis Performa Bisnis",
+    description: "Manfaatkan kekuatan machine learning untuk memahami kesehatan finansial bisnis Anda. Dapatkan rekomendasi strategis untuk meningkatkan profitabilitas.",
+    image: "/fitur-analisis.png",
+  },
+  {
+    icon: Store,
+    title: "UMKM Showcase",
+    description: "Tingkatkan visibilitas bisnis Anda dengan menampilkannya di platform kami. Jangkau pelanggan baru dan bangun citra merek yang kuat.",
+    image: "/fitur-showcase.png",
+  },
 ];
 
-const FeatureCard = ({ feature, index }: { feature: Feature; index: number }) => {
-  const ref = useRef(null);
-  // PERBAIKAN: useInView dipanggil di level atas komponen
-  const isInView = useInView(ref, { once: true, amount: 0.5 });
-
-  const cardVariants = {
-    hidden: { opacity: 0, y: 50 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5, delay: index * 0.2 } },
-  };
-
+const StaticPerspectiveImage = ({ src, alt }: { src: string; alt: string }) => {
   return (
-    <motion.div
-      ref={ref}
-      variants={cardVariants}
-      initial="hidden"
-      animate={isInView ? "visible" : "hidden"} // Animate saat masuk ke view
-      className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-purple-200/50 transition-shadow duration-300 border border-gray-100"
-    >
-      <div className="bg-purple-100 text-purple-600 w-12 h-12 rounded-lg flex items-center justify-center">
-        <feature.icon className="w-6 h-6" />
+    <div className="w-full h-full flex items-center justify-center [perspective:1000px]">
+      <div className="transition-transform duration-500 drop-shadow-lg shadow-purple-300 ease-out [transform-style:preserve-3d] hover:[transform:rotateY(-10deg)_rotateX(5deg)] [transform:rotateY(-20deg)_rotateX(10deg)]">
+        <Image
+          src={src}
+          alt={alt}
+          width={1000} 
+          height={700}
+          quality={100}
+          priority
+          className="rounded-2xl object-contain [filter:drop-shadow(0_30px_35px_rgba(143,135,241,0.25))]"
+        />
       </div>
-      <h3 className="mt-6 text-xl font-bold text-gray-900">{feature.title}</h3>
-      <p className="mt-2 text-gray-600">{feature.description}</p>
-    </motion.div>
+    </div>
   );
 };
 
-
 export const FeaturedSection = () => {
-    return (
-        <section id="features" className="py-20 bg-gray-50">
-            <div className="container mx-auto px-4">
-                <div className="text-center mb-12">
-                    <h2 className="text-3xl font-bold text-gray-900">Platform Lengkap untuk Pertumbuhan UMKM</h2>
-                    <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">Dari analisis otomatis hingga pencatatan transaksi, semua yang Anda butuhkan dalam satu dasbor.</p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {features.map((feature, index) => (
-                        <FeatureCard key={index} feature={feature} index={index} />
-                    ))}
-                </div>
+  const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
+
+  return (
+    <section id="features" className="w-full py-20 my-24 overflow-hidden">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-16 lg:mb-24">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900">
+            Platform Lengkap untuk <span className="text-[#8F87F1]">Pertumbuhan UMKM</span>
+          </h2>
+          <p className="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">
+            Dari analisis otomatis hingga pencatatan transaksi, semua yang Anda butuhkan untuk membawa bisnis Anda ke level selanjutnya ada di sini.
+          </p>
+        </div>
+
+        <div className="relative lg:h-[450px]">
+          
+          <div className="relative z-10 lg:w-1/2">
+            <div className="flex flex-col">
+              {features.map((feature, index) => {
+                const isActive = activeFeatureIndex === index;
+                return (
+                  <div
+                    key={index}
+                    onClick={() => setActiveFeatureIndex(index)}
+                    className={`cursor-pointer p-6 transition-all duration-300 ${isActive ? 'bg-white/50 backdrop-blur-sm border-2 border-[#8F87F1] rounded-2xl' : 'border-b border-gray-200/70'}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`p-2 rounded-lg transition-colors duration-300 ${isActive ? 'bg-[#8F87F1]' : 'bg-gray-200'}`}>
+                        <feature.icon className={`w-6 h-6 transition-colors duration-300 ${isActive ? 'text-white' : 'text-gray-600'}`} />
+                      </div>
+                      <h3 className={`text-xl font-bold transition-colors duration-300 ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>{feature.title}</h3>
+                    </div>
+                    <AnimatePresence>
+                      {isActive && (
+                        <motion.p
+                          initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                          animate={{ opacity: 1, height: 'auto', marginTop: '16px' }}
+                          exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                          transition={{ duration: 0.4, ease: "easeInOut" }}
+                          className="text-gray-600"
+                        >
+                          {feature.description}
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })}
             </div>
-        </section>
-    );
-};
+          </div>
+          
+          <div className="mt-12 lg:mt-0 lg:absolute lg:right-0 lg:top-1/2 lg:-translate-y-1/2 lg:w-7/12">
+            <StaticPerspectiveImage
+              src={features[activeFeatureIndex].image}
+              alt={features[activeFeatureIndex].title}
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

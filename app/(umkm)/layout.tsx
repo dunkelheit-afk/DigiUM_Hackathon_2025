@@ -21,10 +21,6 @@ export default function UmkmDashboardLayout({
         toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
       >
         <div className="flex min-h-screen bg-white">
-          {/* PERUBAHAN UTAMA ADA DI SINI:
-            Props 'isOpen' dan 'toggleSidebar' dihapus karena Sidebar
-            sekarang mengambil nilainya langsung dari SidebarToggleProvider.
-          */}
           <Sidebar />
 
           <main

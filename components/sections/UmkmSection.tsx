@@ -42,48 +42,49 @@ export default function UmkmSection() {
       : 'opacity-0';
 
   return (
-    <section id="umkm-showcase" ref={sectionRef} className="w-full py-20 bg-white text-gray-900 shadow-xl">
+    // Menambahkan margin vertikal (my-24) untuk jarak yang lebih jauh antar section
+    <section id="umkm-showcase" ref={sectionRef} className="w-full py-20 my-24 text-gray-900">
       <div className="max-w-6xl mx-auto px-6 space-y-24">
         <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-16">
-          Showcase <span className="text-purple-600">Top MSMEs</span>
+          Showcase <span className="text-[#8F87F1]">Top MSMEs</span>
         </h2>
 
-        {/* Mengubah grid-cols-1 menjadi grid-cols-3 agar selalu berjejer */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"> {/* Adjusted grid-cols-1 to sm:grid-cols-2 */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-20">
           {featuredUmkms.map((umkm, index) => (
             <Card
               key={index}
               className={`
-                shadow-lg
+                bg-gray-300/20 backdrop-blur-lg border border-white/30
+                rounded-2xl shadow-2xl
                 transition-all duration-300 ease-out
-                hover:scale-[1.03] hover:-translate-y-1 hover:shadow-xl
+                hover:scale-[1.03] hover:-translate-y-2 hover:shadow-fuchsia-400/20
                 will-change-transform will-change-shadow
-                hover:ring-2 hover:ring-purple-400 hover:ring-offset-2 hover:ring-offset-white
+                hover:border-white/50
                 ${getAnimationClasses(index * 100)}
               `}
             >
               <CardHeader className="p-0 mb-4">
-                <Link href={umkm.link} className="block relative h-24 w-full overflow-hidden rounded-t-lg group">
+                <Link href={umkm.link} className="block relative h-48 w-full overflow-hidden rounded-t-2xl group">
                   <Image
                     src={umkm.image}
                     alt={umkm.alt}
                     fill
-                    className="object-contain transition-transform duration-300 group-hover:scale-105"
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-purple-600 bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300"></div>
+                  <div className="absolute inset-0 bg-[#8F87F1] bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300"></div>
                 </Link>
               </CardHeader>
               <CardContent className="px-6 pb-6">
                 <CardTitle className="text-xl font-bold text-gray-900 mb-2">
                   {umkm.name}
                 </CardTitle>
-                <p className="text-purple-600 font-semibold text-base mb-3">
+                <p className="text-[#8F87F1] font-semibold text-base mb-3">
                   {umkm.tagline}
                 </p>
                 <p className="text-sm text-gray-600 leading-relaxed">
                   {umkm.description}
                 </p>
-                <Link href={umkm.link} className="mt-4 inline-block text-purple-600 hover:text-purple-700 font-semibold transition-colors duration-200">
+                <Link href={umkm.link} className="mt-4 inline-block text-[#8F87F1] hover:text-[#C68EFD] font-semibold transition-colors duration-200">
                   View Details &rarr;
                 </Link>
               </CardContent>
