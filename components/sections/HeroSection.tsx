@@ -1,25 +1,37 @@
 // components/sections/HeroSection.tsx
 'use client';
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRef } from "react";
 
 export const HeroSection = () => {
+  // ▼▼▼ Menambahkan hook untuk animasi scroll ▼▼▼
+  const sectionRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start start", "end start"] // Lacak scroll dari saat bagian atas section bertemu bagian atas viewport
+  });
+
+  // Mengubah progress scroll menjadi nilai pergerakan (parallax)
+  const yText = useTransform(scrollYProgress, [0, 1], ["0%", "-150%"]);
+  const yImage = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
+
   return (
-    // Menghapus gradasi lokal agar gradasi dari layout terlihat
-    <section className="relative">
+    // Menambahkan ref dan id pada section
+    <section ref={sectionRef} id="hero" className="relative">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-9 items-center pt-6 lg:pt-0 lg:pb-32">
+        <div className="grid lg:grid-cols-2 gap-9 items-center pt-24 lg:pt-32 lg:pb-32">
           
-          {/* Kolom Kiri */}
+          {/* Kolom Kiri dengan animasi parallax */}
           <motion.div
+            style={{ y: yText }} // Terapkan pergerakan vertikal
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7 }}
           >
-            {/* Menggunakan warna utama dari palet baru */}
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight">
               Analisis Keuangan <span className="text-[#8F87F1]">Instan</span> untuk UMKM Anda
             </h1>
@@ -28,13 +40,11 @@ export const HeroSection = () => {
             </p>
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
               <Link href="/dashboard">
-                {/* Tombol utama dengan warna palet baru */}
                 <Button size="lg" className="bg-[#8F87F1] text-white hover:bg-[#C68EFD] shadow-lg w-full sm:w-auto transition-colors duration-300">
                   Mulai Analisis Sekarang <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
               <Link href="#features">
-                 {/* Tombol sekunder (outline) dengan warna palet baru */}
                 <Button size="lg" variant="outline" className="text-[#8F87F1] border-[#C68EFD] hover:bg-[#8F87F1] hover:text-white w-full sm:w-auto transition-colors duration-300">
                   Pelajari Fitur
                 </Button>
@@ -42,7 +52,6 @@ export const HeroSection = () => {
             </div>
             <div className="mt-8 flex items-center justify-center lg:justify-start gap-4">
               <div className="flex -space-x-2">
-                {/* Pastikan path gambar avatar ini benar */}
                 <Image className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="/images/avatars/budi.jpg" alt="Pengguna Budi" width={40} height={40} />
                 <Image className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="/images/avatars/siti.jpg" alt="Pengguna Siti" width={40} height={40} />
                 <Image className="inline-block h-10 w-10 rounded-full ring-2 ring-white" src="/images/avatars/eko.jpg" alt="Pengguna Eko" width={40} height={40} />
@@ -56,8 +65,9 @@ export const HeroSection = () => {
             </div>
           </motion.div>
 
-          {/* Kolom Kanan */}
+          {/* Kolom Kanan dengan animasi parallax */}
           <motion.div
+            style={{ y: yImage }} // Terapkan pergerakan vertikal
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.7, delay: 0.2 }}

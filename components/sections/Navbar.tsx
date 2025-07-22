@@ -85,7 +85,7 @@ export const Navbar = () => {
         id="main-navbar"
         className={`
           bg-white/80 backdrop-blur-md transition-all duration-500 ease-in-out
-          ${isScrolled ? 'mt-6 shadow-md border border-[#FED2E2] rounded-3xl' : 'mt-0 border-b border-[#FED2E2]'}
+          ${isScrolled ? 'mt-6 shadow-xl border rounded-3xl' : 'mt-0 border- shadow-xl'}
         `}
       >
         <div className={`w-full mx-auto transition-all duration-500 max-w-screen-xl ${
