@@ -107,13 +107,24 @@ export default function UmkmDashboardPage() {
       setError(null);
       try {
         const response = await fetch('/api/analysis/latest');
+        
+        // --- PERBAIKAN ERROR HANDLING ---
         if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.message || "Gagal memuat data analisis.");
+            const contentType = response.headers.get("content-type");
+            let errorMessage;
+            if (contentType && contentType.includes("application/json")) {
+                const errData = await response.json();
+                errorMessage = errData.message || "Gagal memuat data analisis.";
+            } else {
+                errorMessage = `Server error: ${response.status} ${response.statusText}`;
+            }
+            throw new Error(errorMessage);
         }
+
         const data: AnalysisData = await response.json();
         setAnalysisData(data);
-        } catch (err: unknown) {
+
+      } catch (err: unknown) {
           if (err instanceof Error) {
             setError(err.message);
           } else {
@@ -136,7 +147,6 @@ export default function UmkmDashboardPage() {
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4"/>
         <h2 className="text-2xl font-bold text-slate-800">Data Tidak Tersedia</h2>
         <p className="text-slate-500 mt-2">{error}</p>
-        {/* PERUBAHAN DI SINI */}
         <Button className="mt-6 bg-purple-600 hover:bg-purple-700" onClick={() => window.location.href='/umkm/financial-analysis'}>
           Coba Jalankan Analisis
         </Button>
@@ -150,7 +160,6 @@ export default function UmkmDashboardPage() {
         <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4"/>
         <h2 className="text-2xl font-bold text-slate-800">Belum Ada Analisis</h2>
         <p className="text-slate-500 mt-2">Anda belum pernah melakukan analisis. Silakan jalankan analisis pertama Anda.</p>
-        {/* PERUBAHAN DI SINI */}
         <Button className="mt-6 bg-purple-600 hover:bg-purple-700" onClick={() => window.location.href='/umkm/financial-analysis'}>
           Jalankan Analisis Pertama
         </Button>
