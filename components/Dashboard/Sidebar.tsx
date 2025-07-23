@@ -10,9 +10,9 @@ import { createClient } from '@/lib/supabase/client';
 import { useSidebarToggle } from '@/app/contexts/SidebarToggleContext';
 
 const menuItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/financial-analysis', label: 'Financial Suite', icon: HandCoins },
-  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/umkm/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/umkm/financial-analysis', label: 'Financial Suite', icon: HandCoins },
+  { href: '/umkm/settings', label: 'Settings', icon: Settings },
 ];
 
 export function Sidebar() {

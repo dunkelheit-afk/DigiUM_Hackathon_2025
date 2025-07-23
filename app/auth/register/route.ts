@@ -1,42 +1,20 @@
-// app/auth/register/route.ts
-
-import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
+// app/api/auth/register/route.ts
+import { signUp } from '@/backend/services/authService';
+import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
-  const requestUrl = new URL(request.url)
-  const formData = await request.formData()
-  const email = String(formData.get('email'))
-  const password = String(formData.get('password'))
-  
-  // PERBAIKAN: Menggunakan createClient dari @supabase/ssr
-  const cookieStore = cookies()
-  const supabase = createClient(cookieStore)
+  try {
+    const body = await request.json();
+    const { error } = await signUp(body);
 
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      // URL untuk konfirmasi email
-      emailRedirectTo: `${requestUrl.origin}/auth/callback`,
-    },
-  })
-
-  if (error) {
-    return NextResponse.redirect(
-      `${requestUrl.origin}/register?error=Could not sign up user`,
-      {
-        status: 301,
-      }
-    )
-  }
-
-  // Redirect ke halaman login dengan pesan untuk cek email
-  return NextResponse.redirect(
-    `${requestUrl.origin}/login?message=Check email to continue sign in process`,
-    {
-      status: 301,
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
-  )
+
+    return NextResponse.json({ message: 'Registration successful. Please check your email to verify.' });
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (error) {
+    // Tangani error jika JSON tidak valid, dll.
+    return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+  }
 }

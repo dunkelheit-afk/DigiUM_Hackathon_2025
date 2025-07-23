@@ -137,7 +137,7 @@ export default function UmkmDashboardPage() {
         <h2 className="text-2xl font-bold text-slate-800">Data Tidak Tersedia</h2>
         <p className="text-slate-500 mt-2">{error}</p>
         {/* PERUBAHAN DI SINI */}
-        <Button className="mt-6 bg-purple-600 hover:bg-purple-700" onClick={() => window.location.href='/financial-analysis'}>
+        <Button className="mt-6 bg-purple-600 hover:bg-purple-700" onClick={() => window.location.href='/umkm/financial-analysis'}>
           Coba Jalankan Analisis
         </Button>
       </div>
@@ -151,7 +151,7 @@ export default function UmkmDashboardPage() {
         <h2 className="text-2xl font-bold text-slate-800">Belum Ada Analisis</h2>
         <p className="text-slate-500 mt-2">Anda belum pernah melakukan analisis. Silakan jalankan analisis pertama Anda.</p>
         {/* PERUBAHAN DI SINI */}
-        <Button className="mt-6 bg-purple-600 hover:bg-purple-700" onClick={() => window.location.href='/financial-analysis'}>
+        <Button className="mt-6 bg-purple-600 hover:bg-purple-700" onClick={() => window.location.href='/umkm/financial-analysis'}>
           Jalankan Analisis Pertama
         </Button>
       </div>

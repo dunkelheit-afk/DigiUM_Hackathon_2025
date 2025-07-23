@@ -12,19 +12,14 @@ export async function getUserProfile() {
     return null;
   }
 
-  // PERBAIKAN: Mengganti 'users' menjadi 'profiles' agar cocok dengan definisi tipe
   const { data: profile, error } = await supabase
-    .from('profiles') // Nama tabel yang benar adalah 'profiles'
+    .from('users') // Asumsikan Anda punya tabel 'users'
     .select('*')
     .eq('id', user.id)
     .single();
 
   if (error) {
-    // Kode 'PGRST116' berarti tidak ada baris yang ditemukan, yang bisa terjadi
-    // jika profil belum dibuat. Ini bukan error fatal.
-    if (error.code !== 'PGRST116') {
-      console.error('Error fetching user profile:', error);
-    }
+    console.error('Error fetching user profile:', error);
     return null;
   }
 

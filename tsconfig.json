@@ -36,7 +36,7 @@
     "postcss.config.js",
     "next.config.js",
     "src"
-  ],
+, "(middleware.ts)"  ],
   "exclude": [
     "node_modules",
     "supabase/function/**/*"
