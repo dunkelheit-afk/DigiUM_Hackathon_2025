@@ -1,4 +1,3 @@
-// app/(umkm)/financial-analysis/page.tsx
 'use client';
 
 import React, { useState, useEffect, FormEvent, useRef } from 'react';
@@ -182,14 +181,35 @@ export default function UnifiedFinancePage() {
     }
   };
 
+  // --- FUNGSI ANALISIS YANG DIPERBAIKI ---
   const handleAnalyze = async () => {
-    if (!user) return alert('Anda harus login untuk melakukan analisis.');
+    if (!user) {
+      setAnalysisError('Sesi pengguna tidak ditemukan. Silakan muat ulang halaman atau login kembali.');
+      return;
+    }
     
     setAnalysisError(null);
     setIsAnalyzing(true);
     setAnalysisResults(null);
 
+    // --- PERBAIKAN UTAMA: Logika Validasi ---
+    // 1. Buat daftar field finansial yang perlu divalidasi.
+    const fieldsToValidate = [
+      revenue, cogs, operatingExpenses, totalAssets, cash, totalLiabilities, totalEquity
+    ];
+
+    // 2. Periksa apakah ada field yang masih kosong ('').
+    const allFieldsFilled = fieldsToValidate.every(field => field !== '');
+
+    if (!allFieldsFilled) {
+      setAnalysisError('Mohon isi semua field dengan angka yang valid.');
+      setIsAnalyzing(false);
+      return;
+    }
+
+    // 3. Jika validasi lolos, buat objek formData untuk dikirim.
     const formData = {
+      user_id: user.id,
       revenue: Number(revenue),
       cogs: Number(cogs),
       operating_expenses: Number(operatingExpenses),
@@ -199,39 +219,30 @@ export default function UnifiedFinancePage() {
       total_equity: Number(totalEquity),
     };
 
-    const allFieldsFilled = Object.values(formData).every(val => !isNaN(val) && val >= 0);
-    if (!allFieldsFilled) {
-      setAnalysisError('Mohon isi semua field dengan angka yang valid.');
-      setIsAnalyzing(false);
-      return;
-    }
-
     try {
-      // PERUBAHAN PENTING: Menggunakan URL API dari Render
-      const response = await fetch('https://digium-hackathon-2025.onrender.com/api/predict', {
+      // 4. Panggil backend microservice
+      const response = await fetch('http://127.0.0.1:5000/api/predict', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
+      const results = await response.json();
+
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Gagal mendapatkan hasil dari API.');
+        throw new Error(results.error || 'Gagal mendapatkan hasil dari API.');
       }
       
-      const allResults = await response.json();
-      const dataForSupabase = { ...formData, ...allResults, user_id: user.id };
-      const { error: dbError } = await supabase.from('analysis_records').insert(dataForSupabase);
-      
-      if (dbError) throw new Error(`Gagal menyimpan ke database: ${dbError.message}`);
-
-      setAnalysisResults(allResults);
+      setAnalysisResults(results);
       setRevenue(''); setCogs(''); setOperatingExpenses(''); setTotalAssets('');
       setCash(''); setTotalLiabilities(''); setTotalEquity('');
+
     } catch (err) {
-        if (err instanceof Error) {
-            setAnalysisError(err.message);
-        }
+      if (err instanceof Error) {
+        setAnalysisError(err.message);
+      } else {
+        setAnalysisError('Terjadi kesalahan yang tidak diketahui. Pastikan server backend berjalan.');
+      }
     } finally {
       setIsAnalyzing(false);
     }
@@ -385,7 +396,7 @@ export default function UnifiedFinancePage() {
                   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg text-center">
                     <p className="text-green-800 font-medium">Analisis berhasil! Status kesehatan UMKM Anda adalah: <span className="font-bold">{analysisResults.prediction_status}</span>.</p>
                     <p className="mt-2 text-sm text-gray-600">Lihat rekomendasi lengkap di dashboard Anda.</p>
-                    <Button variant="outline" className="mt-4 border-purple-600 text-purple-600 hover:bg-purple-100" onClick={() => window.location.href = '/dashboard'}>
+                    <Button variant="outline" className="mt-4 border-purple-600 text-purple-600 hover:bg-purple-100" onClick={() => window.location.href = '/umkm/dashboard'}>
                       <ArrowLeftCircle className="w-4 h-4 mr-2" /> Kembali ke Dashboard
                     </Button>
                   </motion.div>

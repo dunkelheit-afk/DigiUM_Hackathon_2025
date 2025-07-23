@@ -1,86 +1,62 @@
-// app/api/analysis/latest/route.ts
-// VERSI FINAL: Memastikan kolom 'recommendation' diambil dan dikirim ke frontend.
+// File: app/api/analysis/latest/route.ts
+// Versi ini sesuai dengan skema database "flat" Anda.
 
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  const cookieStore = await cookies();
+  const cookieStore = cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
+        async get(name: string) {
+          return (await cookieStore).get(name)?.value;
         },
       },
     }
   );
 
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    if (!user) {
-      return new NextResponse(
-        JSON.stringify({ message: 'Tidak terautentikasi.' }), { status: 401 }
+    if (userError || !user) {
+      return NextResponse.json(
+        { message: 'Akses ditolak: Pengguna tidak terautentikasi.' },
+        { status: 401 }
       );
     }
 
-    // Ambil data analisis TERAKHIR dari user tersebut
-    const { data: latestAnalysis, error } = await supabase
+    // Ambil data analisis TERAKHIR dari user yang sedang login
+    const { data: latestAnalysis, error: analysisError } = await supabase
       .from('analysis_records')
-      .select('*') // select('*') sudah otomatis mengambil semua kolom, termasuk yang baru
+      .select('*') // Mengambil semua kolom yang sudah dalam format "flat"
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .single(); // .single() untuk mendapatkan satu objek, bukan array
 
-    if (error || !latestAnalysis) {
-      return new NextResponse(
-        JSON.stringify({ message: 'Belum ada data analisis yang ditemukan.' }), { status: 404 }
-      );
-    }
-
-    // Siapkan data lengkap untuk dikirim ke frontend
-    const laba_bersih = latestAnalysis.revenue - latestAnalysis.cogs - latestAnalysis.operating_expenses;
-    const beban = latestAnalysis.cogs + latestAnalysis.operating_expenses;
-
-    const responseData = {
-      // Data Prediksi & Rasio dari DB
-      prediction_status: latestAnalysis.prediction_status,
-      net_profit_margin: latestAnalysis.net_profit_margin,
-      current_ratio: latestAnalysis.current_ratio,
-      debt_to_equity: latestAnalysis.debt_to_equity,
-      roa: latestAnalysis.roa,
-      asset_turnover: latestAnalysis.asset_turnover,
-      recommendation: latestAnalysis.recommendation, // <-- INI YANG PALING PENTING
-      
-      // Data mentah untuk ditampilkan di Ringkasan Finansial
-      revenue: latestAnalysis.revenue,
-      cogs: latestAnalysis.cogs,
-      operating_expenses: latestAnalysis.operating_expenses,
-      total_assets: latestAnalysis.total_assets,
-      cash: latestAnalysis.cash,
-      total_liabilities: latestAnalysis.total_liabilities,
-      total_equity: latestAnalysis.total_equity,
-      
-      // Data turunan untuk grafik
-      expenses: beban,
-      net_profit: laba_bersih,
-    };
-
-    return NextResponse.json(responseData);
-
-  } catch (error: unknown) {
-      if (error instanceof Error) {
-        return new NextResponse(
-            JSON.stringify({ message: 'Terjadi kesalahan pada server', error: error.message }), { status: 500 }
-          );
+    if (analysisError) {
+      // Jika error karena tidak ada data, kirim pesan yang lebih jelas
+      if (analysisError.code === 'PGRST116') {
+        return NextResponse.json({ message: 'Belum ada data analisis yang ditemukan.' }, { status: 404 });
       }
-      return new NextResponse(
-        JSON.stringify({ message: 'Terjadi kesalahan pada server' }), { status: 500 }
-      );
+      // Untuk error lain, lempar error agar ditangkap oleh blok catch
+      throw analysisError;
+    }
+    
+    // Karena skema database Anda sudah "flat", kita tidak perlu melakukan format ulang.
+    // Data dari Supabase sudah cocok dengan yang dibutuhkan oleh komponen dashboard.
+    // Langsung kirimkan objek `latestAnalysis`.
+    return NextResponse.json(latestAnalysis);
+
+  } catch (error: any) {
+    console.error('Error di API /analysis/latest:', error);
+    return NextResponse.json(
+        { message: 'Terjadi kesalahan pada server', error: error.message },
+        { status: 500 }
+    );
   }
 }
