@@ -1,0 +1,6 @@
+# api/requirements.txt
+
+Flask
+Flask-Cors
+supabase
+python-dotenv

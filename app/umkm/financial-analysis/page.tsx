@@ -11,8 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Loader2, TrendingUp, AlertCircle, BookMarked, Calculator, ArrowLeftCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
-import type { User } from '@supabase/supabase-js';
-
+import { useUser } from '@/app/contexts/UserContext'; // <-- PERUBAHAN 1: Gunakan useUser dari Context
 
 // --- DEFINISI TIPE ---
 interface Transaction {
@@ -85,9 +84,8 @@ const CurrencyInput = ({ value, setter, ...props }: CurrencyInputProps) => {
 
 export default function UnifiedFinancePage() {
   // --- STATE ---
-  const [supabase] = useState(() => createClient());
-  const [user, setUser] = useState<User | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const supabase = createClient();
+  const { user, isLoading: isAuthLoading } = useUser(); // <-- PERUBAHAN 2: Dapatkan user dan status loading dari context
   
   // State Pencatatan
   const [description, setDescription] = useState('');
@@ -110,8 +108,9 @@ export default function UnifiedFinancePage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
 
-  const fetchTransactions = React.useCallback(async (currentUser: User | null) => {
-    if (!currentUser) return;
+  // --- EFEK & FUNGSI DATA ---
+  const fetchTransactions = React.useCallback(async () => {
+    if (!user) return; // Cek jika user sudah ada dari context
     setIsLoadingTransactions(true);
     try {
       const { data, error } = await supabase.from('transactions').select('*').order('tanggal', { ascending: false });
@@ -122,29 +121,11 @@ export default function UnifiedFinancePage() {
     } finally {
       setIsLoadingTransactions(false);
     }
-  }, [supabase]);
-
-  // --- EFEK & FUNGSI DATA ---
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      setIsAuthLoading(false);
-    };
-    checkUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
-        fetchTransactions(session?.user ?? null);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [supabase, fetchTransactions]);
+  }, [supabase, user]); // Tambahkan user sebagai dependency
 
   useEffect(() => {
     if (user) {
-      fetchTransactions(user);
+      fetchTransactions();
     } else if (!isAuthLoading) {
       setTransactions([]);
       setIsLoadingTransactions(false);
@@ -181,7 +162,6 @@ export default function UnifiedFinancePage() {
     }
   };
 
-  // --- FUNGSI ANALISIS YANG DIPERBAIKI ---
   const handleAnalyze = async () => {
     if (!user) {
       setAnalysisError('Sesi pengguna tidak ditemukan. Silakan muat ulang halaman atau login kembali.');
@@ -192,13 +172,9 @@ export default function UnifiedFinancePage() {
     setIsAnalyzing(true);
     setAnalysisResults(null);
 
-    // --- PERBAIKAN UTAMA: Logika Validasi ---
-    // 1. Buat daftar field finansial yang perlu divalidasi.
     const fieldsToValidate = [
       revenue, cogs, operatingExpenses, totalAssets, cash, totalLiabilities, totalEquity
     ];
-
-    // 2. Periksa apakah ada field yang masih kosong ('').
     const allFieldsFilled = fieldsToValidate.every(field => field !== '');
 
     if (!allFieldsFilled) {
@@ -207,9 +183,7 @@ export default function UnifiedFinancePage() {
       return;
     }
 
-    // 3. Jika validasi lolos, buat objek formData untuk dikirim.
     const formData = {
-      user_id: user.id,
       revenue: Number(revenue),
       cogs: Number(cogs),
       operating_expenses: Number(operatingExpenses),
@@ -220,11 +194,14 @@ export default function UnifiedFinancePage() {
     };
 
     try {
-      // 4. Panggil backend microservice
-      const response = await fetch('http://127.0.0.1:5000/api/predict', {
+      const response = await fetch('/api/predict', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        // --- PERBAIKAN 3: Balik urutan untuk menghindari overwrite ---
+        body: JSON.stringify({
+          ...formData,
+          user_id: user.id, 
+        }),
       });
 
       const results = await response.json();
