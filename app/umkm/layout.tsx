@@ -3,7 +3,7 @@
 
 import { Sidebar } from '@/components/Dashboard/Sidebar';
 import { Toaster } from '@/components/ui/toaster';
-import React, { useState } from 'react';
+import React from 'react';
 import { SidebarToggleProvider } from '@/app/contexts/SidebarToggleContext';
 import { UserProvider } from '@/app/contexts/UserContext';
 
@@ -12,13 +12,10 @@ export default function UmkmDashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
     <UserProvider>
       <SidebarToggleProvider
-        isSidebarOpen={isSidebarOpen}
-        toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
       >
         <div className="flex min-h-screen bg-white">
           <Sidebar />
