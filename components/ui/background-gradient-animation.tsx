@@ -1,17 +1,19 @@
 // components/ui/background-gradient-animation.tsx
 "use client";
-import { cn } from "@/lib/utils";
-import { useEffect, useRef, useState } from "react";
+
+import { cn } from "@/lib/utils"; //
+import { motion } from "framer-motion"; //
+import React, { useEffect, useRef, useState } from "react";
 
 export const BackgroundGradientAnimation = ({
-  gradientBackgroundStart = "rgb(108, 0, 162)",
-  gradientBackgroundEnd = "rgb(0, 17, 82)",
-  firstColor = "18, 113, 255",
-  secondColor = "221, 74, 255",
-  thirdColor = "100, 220, 255",
-  fourthColor = "200, 50, 50",
-  fifthColor = "180, 180, 50",
-  pointerColor = "140, 100, 255",
+  gradientBackgroundStart = "rgb(26, 35, 126)",
+  gradientBackgroundEnd = "rgb(76, 29, 149)",
+  firstColor = "0, 221, 255",
+  secondColor = "255, 0, 110",
+  thirdColor = "178, 102, 255",
+  fourthColor = "0, 128, 255",
+  fifthColor = "128, 0, 128",
+  pointerColor = "0, 221, 255",
   size = "80%",
   blendingValue = "hard-light",
   children,
@@ -40,6 +42,7 @@ export const BackgroundGradientAnimation = ({
   const [curY, setCurY] = useState(0);
   const [tgX, setTgX] = useState(0);
   const [tgY, setTgY] = useState(0);
+
   useEffect(() => {
     document.body.style.setProperty(
       "--gradient-background-start",
@@ -57,26 +60,29 @@ export const BackgroundGradientAnimation = ({
     document.body.style.setProperty("--pointer-color", pointerColor);
     document.body.style.setProperty("--size", size);
     document.body.style.setProperty("--blending-value", blendingValue);
-  }, [blendingValue, fifthColor, firstColor, fourthColor, gradientBackgroundEnd, gradientBackgroundStart, pointerColor, secondColor, size, thirdColor]);
+  }, [gradientBackgroundStart, gradientBackgroundEnd, firstColor, secondColor, thirdColor, fourthColor, fifthColor, pointerColor, size, blendingValue]);
 
   useEffect(() => {
+    let animationFrameId: number;
     function move() {
       if (!interactiveRef.current) {
         return;
       }
-      setCurX(curX + (tgX - curX) / 20);
-      setCurY(curY + (tgY - curY) / 20);
+      setCurX(prevCurX => prevCurX + (tgX - prevCurX) / 20);
+      setCurY(prevCurY => prevCurY + (tgY - prevCurY) / 20);
       interactiveRef.current.style.transform = `translate(${Math.round(
         curX
       )}px, ${Math.round(curY)}px)`;
+      animationFrameId = requestAnimationFrame(move);
     }
 
-    move();
+    animationFrameId = requestAnimationFrame(move);
+    return () => cancelAnimationFrame(animationFrameId);
   }, [curX, curY, tgX, tgY]);
 
   const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     if (interactiveRef.current) {
-      const rect = interactiveRef.current.getBoundingClientRect();
+      const rect = event.currentTarget.getBoundingClientRect();
       setTgX(event.clientX - rect.left);
       setTgY(event.clientY - rect.top);
     }
@@ -112,58 +118,63 @@ export const BackgroundGradientAnimation = ({
           </filter>
         </defs>
       </svg>
-      <div className={cn("", className)}>{children}</div>
+      <div className={cn("absolute z-20 w-full", className)}>{children}</div>
       <div
         className={cn(
           "gradients-container h-full w-full blur-lg",
           isSafari ? "blur-2xl" : "[filter:url(#blurMe)_blur(40px)]"
         )}
       >
-        <div
+        <motion.div
           className={cn(
             `absolute [background:radial-gradient(circle_at_center,_var(--first-color)_0,_var(--first-color)_50%)_no-repeat]`,
             `[mix-blend-mode:var(--blending-value)] w-[var(--size)] h-[var(--size)] top-[calc(50%-var(--size)/2)] left-[calc(50%-var(--size)/2)]`,
             `[transform-origin:center_center]`,
-            `animate-first`,
             `opacity-100`
           )}
-        ></div>
-        <div
+          animate={{ translateY: ["-50%", "50%", "-50%"] }}
+          transition={{ duration: 30, repeat: Infinity, ease: "easeInOut" }}
+        ></motion.div>
+        <motion.div
           className={cn(
             `absolute [background:radial-gradient(circle_at_center,_rgba(var(--second-color),_0.8)_0,_rgba(var(--second-color),_0)_50%)_no-repeat]`,
             `[mix-blend-mode:var(--blending-value)] w-[var(--size)] h-[var(--size)] top-[calc(50%-var(--size)/2)] left-[calc(50%-var(--size)/2)]`,
             `[transform-origin:calc(50%-400px)]`,
-            `animate-second`,
             `opacity-100`
           )}
-        ></div>
-        <div
+          animate={{ rotate: [0, -360] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+        ></motion.div>
+        <motion.div
           className={cn(
             `absolute [background:radial-gradient(circle_at_center,_rgba(var(--third-color),_0.8)_0,_rgba(var(--third-color),_0)_50%)_no-repeat]`,
             `[mix-blend-mode:var(--blending-value)] w-[var(--size)] h-[var(--size)] top-[calc(50%-var(--size)/2)] left-[calc(50%-var(--size)/2)]`,
             `[transform-origin:calc(50%+400px)]`,
-            `animate-third`,
             `opacity-100`
           )}
-        ></div>
-        <div
+          animate={{ rotate: [0, 360] }}
+          transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+        ></motion.div>
+        <motion.div
           className={cn(
             `absolute [background:radial-gradient(circle_at_center,_rgba(var(--fourth-color),_0.8)_0,_rgba(var(--fourth-color),_0)_50%)_no-repeat]`,
             `[mix-blend-mode:var(--blending-value)] w-[var(--size)] h-[var(--size)] top-[calc(50%-var(--size)/2)] left-[calc(50%-var(--size)/2)]`,
             `[transform-origin:calc(50%-200px)]`,
-            `animate-fourth`,
             `opacity-70`
           )}
-        ></div>
-        <div
+          animate={{ translateX: ["-50%", "50%", "-50%"], translateY: ["-10%", "10%", "-10%"] }}
+          transition={{ duration: 40, repeat: Infinity, ease: "easeInOut" }}
+        ></motion.div>
+        <motion.div
           className={cn(
             `absolute [background:radial-gradient(circle_at_center,_rgba(var(--fifth-color),_0.8)_0,_rgba(var(--fifth-color),_0)_50%)_no-repeat]`,
             `[mix-blend-mode:var(--blending-value)] w-[var(--size)] h-[var(--size)] top-[calc(50%-var(--size)/2)] left-[calc(50%-var(--size)/2)]`,
             `[transform-origin:calc(50%-800px)_calc(50%+800px)]`,
-            `animate-fifth`,
             `opacity-100`
           )}
-        ></div>
+          animate={{ rotate: [0, 360] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+        ></motion.div>
 
         {interactive && (
           <div
