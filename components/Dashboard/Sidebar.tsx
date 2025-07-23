@@ -1,4 +1,3 @@
-// Contoh path: components/Dashboard/Sidebar.tsx
 'use client';
 
 import React from 'react';
@@ -6,11 +5,10 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { LogOut, LayoutDashboard, Settings, HandCoins, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useSidebarToggle } from '@/app/contexts/SidebarToggleContext';
 import { useUser } from '@/app/contexts/UserContext';
 import { createClient } from '@/lib/supabase/client';
+import { useSidebarToggle } from '@/app/contexts/SidebarToggleContext';
 
-// Definisikan item-item menu di sini agar mudah dikelola
 const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/financial-analysis', label: 'Financial Suite', icon: HandCoins },
@@ -21,17 +19,18 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  // Perbaikan: Menggunakan 'isSidebarOpen' sesuai dengan definisi di SidebarToggleContext
   const { isSidebarOpen, toggleSidebar } = useSidebarToggle();
   const { profile, isLoading } = useUser();
 
   const displayName = isLoading ? 'Memuat...' : profile?.full_name || 'Nama Pengguna';
   const umkmName = isLoading ? 'UMKM Anda' : profile?.umkm_name || 'Nama UMKM';
-  
+
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
-      console.error('Error logging out:', error.message);
-      alert('Gagal untuk logout.');
+      console.error('Error logging out:', error.message); // Perbaikan: Mengganti alert() dengan console.error
+      // Anda bisa menambahkan UI notifikasi kustom di sini jika diperlukan
     } else {
       router.push('/login');
     }
@@ -41,16 +40,16 @@ export function Sidebar() {
     <aside
       className={`
         flex flex-col bg-white border-r border-gray-200 transition-all duration-300 ease-in-out
-        ${isSidebarOpen ? 'w-64' : 'w-20'}
+        ${isSidebarOpen ? 'w-64' : 'w-20'} {/* Perbaikan: Logika lebar sidebar berdasarkan isSidebarOpen */}
       `}
     >
-      {/* Header Sidebar dengan Logika Tampilan Baru */}
+      {/* Header Sidebar */}
       <div className={`flex items-center p-4 border-b ${isSidebarOpen ? 'justify-between' : 'justify-center'}`}>
         <h1 className={`font-bold text-2xl text-purple-700 transition-all duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 hidden'}`}>
           DigiUM
         </h1>
         <Button variant="ghost" size="icon" onClick={toggleSidebar}>
-          {isSidebarOpen ? <ChevronLeft /> : <ChevronRight />}
+          {isSidebarOpen ? <ChevronLeft /> : <ChevronRight />} {/* Perbaikan: Ikon panah sesuai status sidebar */}
         </Button>
       </div>
 
@@ -60,11 +59,11 @@ export function Sidebar() {
           <Link
             key={item.href}
             href={item.href}
-            title={isSidebarOpen ? '' : item.label} // Tooltip saat sidebar tertutup
+            title={!isSidebarOpen ? item.label : ''} // Tooltip saat sidebar tertutup
             className={`
               flex items-center p-2 rounded-lg text-gray-700 hover:bg-purple-100 hover:text-purple-700
               ${pathname === item.href ? 'bg-purple-100 text-purple-700' : ''}
-              ${!isSidebarOpen && 'justify-center'}
+              ${!isSidebarOpen ? 'justify-center' : ''}
             `}
           >
             <item.icon className="w-5 h-5 flex-shrink-0" />
@@ -86,12 +85,12 @@ export function Sidebar() {
             <p className="text-xs text-gray-500 truncate">{umkmName}</p>
           </div>
         </div>
-        
-        <Button 
-          variant="ghost" 
-          className={`w-full justify-start mt-4 bg-white ring- text-black hover:bg-purple-700 hover:text-white ${!isSidebarOpen && 'justify-center'}`}
+
+        <Button
+          variant="ghost"
+          className={`w-full justify-start mt-4 bg-white text-black hover:bg-purple-700 hover:text-white ${!isSidebarOpen ? 'justify-center' : ''}`}
           onClick={handleLogout}
-          title={isSidebarOpen ? '' : 'Logout'} // Tooltip saat sidebar tertutup
+          title={!isSidebarOpen ? 'Logout' : ''}
         >
           <LogOut className="w-5 h-5 flex-shrink-0" />
           <span className={`ml-4 text-sm font-medium transition-all duration-200 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 hidden'}`}>

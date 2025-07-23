@@ -1,33 +1,30 @@
-// contexts/SidebarToggleContext.tsx
-'use client'; // PENTING: Pastikan ini ada di baris paling atas
+// app/contexts/SidebarToggleContext.tsx
+'use client';
 
-import { createContext, useContext } from 'react';
-import React from 'react'; // Pastikan React diimpor jika menggunakan JSX di sini (walaupun tidak langsung)
+import { createContext, useContext, useState, ReactNode } from 'react';
 
-// Definisikan tipe untuk nilai konteks
-interface SidebarToggleContextType {
+interface SidebarToggleContextProps {
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
 }
 
-// Buat konteks dengan nilai default (yang tidak akan pernah digunakan jika provider ada)
-const SidebarToggleContext = createContext<SidebarToggleContextType | undefined>(undefined);
+const SidebarToggleContext = createContext<SidebarToggleContextProps | undefined>(undefined);
 
-// Hook kustom untuk menggunakan konteks ini
-export function useSidebarToggle() {
-  const context = useContext(SidebarToggleContext);
-  if (context === undefined) {
-    // Pesan error yang lebih spesifik
-    throw new Error('useSidebarToggle must be used within a SidebarToggleProvider');
-  }
-  return context;
-}
+export const SidebarToggleProvider = ({ children }: { children: ReactNode }) => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
 
-// Komponen provider (akan digunakan di layout)
-export function SidebarToggleProvider({ children, isSidebarOpen, toggleSidebar }: React.PropsWithChildren<SidebarToggleContextType>) {
   return (
     <SidebarToggleContext.Provider value={{ isSidebarOpen, toggleSidebar }}>
       {children}
     </SidebarToggleContext.Provider>
   );
-}
+};
+
+export const useSidebarToggle = () => {
+  const context = useContext(SidebarToggleContext);
+  if (!context) {
+    throw new Error('useSidebarToggle must be used within a SidebarToggleProvider');
+  }
+  return context;
+};
