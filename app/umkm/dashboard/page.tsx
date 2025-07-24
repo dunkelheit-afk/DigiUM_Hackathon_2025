@@ -116,7 +116,8 @@ export default function UmkmDashboardPage() {
                 const errData = await response.json();
                 errorMessage = errData.message || "Gagal memuat data analisis.";
             } else {
-                errorMessage = `Server error: ${response.status} ${response.statusText}`;
+                // Jika respons bukan JSON (misalnya error 500 dari Vercel), berikan pesan umum
+                errorMessage = `Server Error: ${response.status}. Pastikan environment variables di Vercel sudah benar.`;
             }
             throw new Error(errorMessage);
         }

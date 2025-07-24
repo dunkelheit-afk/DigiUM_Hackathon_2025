@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, FormEvent, useRef } from 'react';
+import React, { useState, useEffect, FormEvent } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from '@/components/ui/label';
@@ -8,10 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, TrendingUp, AlertCircle, BookMarked, Calculator, ArrowLeftCircle } from 'lucide-react';
+import { Loader2, TrendingUp, AlertCircle, BookMarked, Calculator, ArrowLeftCircle, Save } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
-import { useUser } from '@/app/contexts/UserContext'; // <-- PERUBAHAN 1: Gunakan useUser dari Context
+import { useUser } from '@/app/contexts/UserContext';
+import { useToast } from '@/hooks/use-toast';
 
 // --- DEFINISI TIPE ---
 interface Transaction {
@@ -38,7 +39,6 @@ interface CurrencyInputProps {
 // --- KOMPONEN INPUT MATA UANG ---
 const CurrencyInput = ({ value, setter, ...props }: CurrencyInputProps) => {
   const [displayValue, setDisplayValue] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const formatted = new Intl.NumberFormat('id-ID').format(Number(value) || 0);
@@ -56,9 +56,9 @@ const CurrencyInput = ({ value, setter, ...props }: CurrencyInputProps) => {
     const numericValue = rawValue.replace(/[^0-9]/g, '');
     
     if (numericValue === '') {
-        setter('');
-        setDisplayValue('');
-        return;
+      setter('');
+      setDisplayValue('');
+      return;
     }
     const number = parseInt(numericValue, 10);
     setDisplayValue(new Intl.NumberFormat('id-ID').format(number));
@@ -69,12 +69,11 @@ const CurrencyInput = ({ value, setter, ...props }: CurrencyInputProps) => {
     <div className="relative">
       <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-sm text-gray-500">Rp</span>
       <Input
-        ref={inputRef}
         type="text"
         inputMode="numeric"
         value={displayValue}
         onChange={handleChange}
-        className="w-full bg-slate-50 border-purple-200/80 rounded-md focus:ring-purple-500 pl-9"
+        className="w-full bg-white/50 border-purple-300/80 rounded-md focus:ring-purple-500 pl-9"
         {...props}
       />
     </div>
@@ -83,9 +82,10 @@ const CurrencyInput = ({ value, setter, ...props }: CurrencyInputProps) => {
 
 
 export default function UnifiedFinancePage() {
-  // --- STATE ---
+  // --- STATE & HOOKS ---
   const supabase = createClient();
-  const { user, isLoading: isAuthLoading } = useUser(); // <-- PERUBAHAN 2: Dapatkan user dan status loading dari context
+  const { user, isLoading: isAuthLoading } = useUser();
+  const { toast } = useToast();
   
   // State Pencatatan
   const [description, setDescription] = useState('');
@@ -110,7 +110,7 @@ export default function UnifiedFinancePage() {
 
   // --- EFEK & FUNGSI DATA ---
   const fetchTransactions = React.useCallback(async () => {
-    if (!user) return; // Cek jika user sudah ada dari context
+    if (!user) return;
     setIsLoadingTransactions(true);
     try {
       const { data, error } = await supabase.from('transactions').select('*').order('tanggal', { ascending: false });
@@ -118,10 +118,11 @@ export default function UnifiedFinancePage() {
       setTransactions(data || []);
     } catch (error) {
       console.error('Gagal memuat transaksi:', error);
+      toast({ title: "Error", description: "Gagal memuat riwayat transaksi.", variant: "destructive" });
     } finally {
       setIsLoadingTransactions(false);
     }
-  }, [supabase, user]); // Tambahkan user sebagai dependency
+  }, [supabase, user, toast]);
 
   useEffect(() => {
     if (user) {
@@ -134,10 +135,12 @@ export default function UnifiedFinancePage() {
 
   const handleSaveTransaction = async (e: FormEvent) => {
     e.preventDefault();
-    if (!user) return alert('Anda harus login untuk menyimpan transaksi.');
+    if (!user) return toast({ title: "Akses Ditolak", description: "Anda harus login untuk menyimpan transaksi.", variant: "destructive"});
+    
     if (!description || !category || amount === '' || Number(amount) <= 0) {
-      return alert('Mohon isi semua field dengan benar.');
+      return toast({ title: "Input Tidak Lengkap", description: "Mohon isi semua field dengan benar.", variant: "destructive"});
     }
+    
     setIsSubmitting(true);
     try {
       const newTransactionData = {
@@ -145,17 +148,36 @@ export default function UnifiedFinancePage() {
         deskripsi: description,
         kategori: category,
         jumlah: amount,
-        user_id: user.id,
       };
-      const { data, error } = await supabase.from('transactions').insert(newTransactionData).select().single();
-      if (error) throw error;
-      setTransactions(prev => [data, ...prev]);
+
+      const response = await fetch('/api/transactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newTransactionData),
+      });
+
+      const savedTransaction = await response.json();
+
+      if (!response.ok) {
+        throw new Error(savedTransaction.message || 'Gagal menyimpan transaksi.');
+      }
+      
+      // PERUBAHAN: Mengaktifkan kembali auto-render
+      if (savedTransaction && Array.isArray(savedTransaction) && savedTransaction.length > 0) {
+        setTransactions(prev => [savedTransaction[0], ...prev.filter(t => t.id !== savedTransaction[0].id)]);
+      } else {
+        console.error("API response for new transaction is not in the expected format:", savedTransaction);
+        toast({ title: "Error", description: "Gagal memperbarui daftar transaksi setelah menyimpan.", variant: "destructive"});
+      }
+
       setDescription('');
       setCategory('');
       setAmount('');
+      toast({ title: "Sukses!", description: "Transaksi berhasil disimpan." });
+
     } catch (error) {
         if (error instanceof Error) {
-            alert('Gagal menyimpan transaksi: ' + error.message);
+            toast({ title: "Error", description: `Gagal menyimpan: ${error.message}`, variant: "destructive"});
         }
     } finally {
       setIsSubmitting(false);
@@ -164,7 +186,7 @@ export default function UnifiedFinancePage() {
 
   const handleAnalyze = async () => {
     if (!user) {
-      setAnalysisError('Sesi pengguna tidak ditemukan. Silakan muat ulang halaman atau login kembali.');
+      setAnalysisError('Sesi pengguna tidak ditemukan. Silakan muat ulang halaman.');
       return;
     }
     
@@ -172,12 +194,8 @@ export default function UnifiedFinancePage() {
     setIsAnalyzing(true);
     setAnalysisResults(null);
 
-    const fieldsToValidate = [
-      revenue, cogs, operatingExpenses, totalAssets, cash, totalLiabilities, totalEquity
-    ];
-    const allFieldsFilled = fieldsToValidate.every(field => field !== '');
-
-    if (!allFieldsFilled) {
+    const fieldsToValidate = [revenue, cogs, operatingExpenses, totalAssets, cash, totalLiabilities, totalEquity];
+    if (fieldsToValidate.some(field => field === '' || field === null)) {
       setAnalysisError('Mohon isi semua field dengan angka yang valid.');
       setIsAnalyzing(false);
       return;
@@ -194,38 +212,51 @@ export default function UnifiedFinancePage() {
     };
 
     try {
-      const response = await fetch('/api/predict', {
+      const predictResponse = await fetch('/api/predict', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // --- PERBAIKAN 3: Balik urutan untuk menghindari overwrite ---
-        body: JSON.stringify({
-          ...formData,
-          user_id: user.id, 
-        }),
+        body: JSON.stringify(formData),
       });
 
-      const results = await response.json();
+      const predictionResults = await predictResponse.json();
 
-      if (!response.ok) {
-        throw new Error(results.error || 'Gagal mendapatkan hasil dari API.');
+      if (!predictResponse.ok) {
+        throw new Error(predictionResults.error || 'Gagal mendapatkan hasil prediksi dari server.');
       }
       
-      setAnalysisResults(results);
+      setAnalysisResults(predictionResults);
+      toast({ title: "Prediksi Berhasil!", description: `Status kesehatan UMKM Anda: ${predictionResults.prediction_status}` });
+
+      const recordToSave = {
+        ...formData,
+        prediction_status: predictionResults.prediction_status,
+        recommendation: predictionResults.recommendation,
+      };
+
+      const saveRecordResponse = await fetch('/api/analysis-records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(recordToSave),
+      });
+
+      if (!saveRecordResponse.ok) {
+        console.error("Gagal menyimpan catatan analisis ke database.");
+        toast({ title: "Peringatan", description: "Hasil analisis berhasil didapat, namun gagal disimpan dalam riwayat.", variant: "destructive" });
+      } else {
+        console.log("Catatan analisis berhasil disimpan.");
+      }
+
       setRevenue(''); setCogs(''); setOperatingExpenses(''); setTotalAssets('');
       setCash(''); setTotalLiabilities(''); setTotalEquity('');
 
     } catch (err) {
-      if (err instanceof Error) {
-        setAnalysisError(err.message);
-      } else {
-        setAnalysisError('Terjadi kesalahan yang tidak diketahui. Pastikan server backend berjalan.');
-      }
+      const errorMessage = err instanceof Error ? err.message : 'Terjadi kesalahan yang tidak diketahui.';
+      setAnalysisError(errorMessage);
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  // --- UI HELPERS ---
   const analysisInputFields = [
     { id: 'revenue', label: 'Pendapatan (Omzet)', value: revenue, setter: setRevenue },
     { id: 'cogs', label: 'Harga Pokok Penjualan (HPP)', value: cogs, setter: setCogs },
@@ -246,29 +277,29 @@ export default function UnifiedFinancePage() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-purple-50 via-white to-white flex justify-center items-center p-4">
-      <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-6xl">
-        <Card className="bg-white/80 backdrop-blur-sm border border-slate-200/80 rounded-2xl shadow-xl shadow-purple-200/50">
+    <div className="w-full min-h-screen rounded-3xl p-6 md:p-6 flex items-center justify-center bg-gradient-to-br from-purple-200 via-indigo-200 to-blue-300 bg-[length:400%_400%] animate-background-pan">
+      <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-7xl mx-auto">
+        <Card className="bg-white/20 backdrop-blur-xl border border-white/30 rounded-2xl shadow-lg">
           <CardHeader className="text-center pt-8">
-            <CardTitle className="text-4xl md:text-5xl font-extrabold text-purple-700">Financial Suite</CardTitle>
-            <CardDescription className="text-slate-600 mt-3 max-w-2xl mx-auto">
+            <CardTitle className="text-4xl md:text-5xl font-extrabold text-white [text-shadow:_0_2px_4px_rgb(0_0_0_/_20%)]">Financial Suite</CardTitle>
+            <CardDescription className="text-white/80 mt-3 max-w-2xl mx-auto [text-shadow:_0_1px_2px_rgb(0_0_0_/_20%)]">
               {user ? `Selamat datang! Kelola pencatatan dan analisis keuangan Anda.` : 'Mohon login untuk mengelola keuangan Anda.'}
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6 md:p-8">
             {!user ? (
-              <div className="text-center p-10 bg-purple-50 rounded-lg">
-                <AlertCircle className="mx-auto h-12 w-12 text-purple-400" />
-                <h3 className="mt-4 text-lg font-medium text-purple-800">Butuh Autentikasi</h3>
-                <p className="mt-2 text-sm text-slate-600">Anda harus login untuk menggunakan Financial Suite.</p>
+              <div className="text-center p-10 bg-white/20 rounded-lg">
+                <AlertCircle className="mx-auto h-12 w-12 text-purple-800" />
+                <h3 className="mt-4 text-lg font-medium text-purple-900">Butuh Autentikasi</h3>
+                <p className="mt-2 text-sm text-gray-800">Anda harus login untuk menggunakan Financial Suite.</p>
               </div>
             ) : (
             <Tabs defaultValue="analysis" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 bg-purple-100/60 p-1 h-11 rounded-lg">
-                <TabsTrigger value="bookkeeping" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
+              <TabsList className="grid w-full grid-cols-2 bg-white/20 p-1 h-11 rounded-lg">
+                <TabsTrigger value="bookkeeping" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white text-gray-800">
                     <BookMarked className="w-4 h-4 mr-2" /> Pencatatan
                 </TabsTrigger>
-                <TabsTrigger value="analysis" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
+                <TabsTrigger value="analysis" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white text-gray-800">
                     <Calculator className="w-4 h-4 mr-2" /> Analisis Cepat
                 </TabsTrigger>
               </TabsList>
@@ -276,16 +307,16 @@ export default function UnifiedFinancePage() {
               <TabsContent value="bookkeeping" className="mt-6">
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-12">
                   <div className="lg:col-span-2">
-                    <h2 className="text-2xl font-bold text-purple-900 mb-4">Catat Transaksi</h2>
-                    <form onSubmit={handleSaveTransaction} className="space-y-4 p-6 bg-white rounded-xl border border-purple-200/80 shadow-sm">
+                    <h2 className="text-2xl font-bold text-white [text-shadow:_0_1px_2px_rgb(0_0_0_/_20%)] mb-4">Catat Transaksi</h2>
+                    <form onSubmit={handleSaveTransaction} className="space-y-4 p-6 bg-white/20 rounded-xl border border-white/30 shadow-sm">
                       <div className="space-y-1">
-                        <Label htmlFor="date">Tanggal</Label>
-                        <Input id="date" type="date" value={date} onChange={e => setDate(e.target.value)} required />
+                        <Label htmlFor="date" className="text-gray-800">Tanggal</Label>
+                        <Input id="date" type="date" value={date} onChange={e => setDate(e.target.value)} required className="bg-white/50 border-purple-300/80"/>
                       </div>
                       <div className="space-y-1">
-                        <Label htmlFor="category">Kategori</Label>
+                        <Label htmlFor="category" className="text-gray-800">Kategori</Label>
                         <Select value={category} onValueChange={setCategory} required>
-                          <SelectTrigger><SelectValue placeholder="Pilih kategori..." /></SelectTrigger>
+                          <SelectTrigger className="bg-white/50 border-purple-300/80"><SelectValue placeholder="Pilih kategori..." /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Pendapatan Penjualan">Pendapatan Penjualan</SelectItem>
                             <SelectItem value="HPP">Harga Pokok Penjualan (HPP)</SelectItem>
@@ -296,45 +327,45 @@ export default function UnifiedFinancePage() {
                         </Select>
                       </div>
                       <div className="space-y-1">
-                        <Label htmlFor="description">Deskripsi</Label>
-                        <Input id="description" placeholder="Contoh: Penjualan 10 kaos" value={description} onChange={e => setDescription(e.target.value)} required />
+                        <Label htmlFor="description" className="text-gray-800">Deskripsi</Label>
+                        <Input id="description" placeholder="Contoh: Penjualan 10 kaos" value={description} onChange={e => setDescription(e.target.value)} required className="bg-white/50 border-purple-300/80"/>
                       </div>
                       <div className="space-y-1">
-                        <Label htmlFor="amount">Jumlah</Label>
+                        <Label htmlFor="amount" className="text-gray-800">Jumlah</Label>
                         <CurrencyInput id="amount" value={amount} setter={setAmount} placeholder="0" />
                       </div>
                       <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700" disabled={isSubmitting}>
-                        {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...</> : 'Simpan Transaksi'}
+                        {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...</> : <><Save className="mr-2 h-4 w-4" /> Simpan Transaksi</>}
                       </Button>
                     </form>
                   </div>
                   <div className="lg:col-span-3">
-                    <h3 className="text-2xl font-bold text-purple-900 mb-4">Riwayat Transaksi</h3>
-                    <Card className="h-[28rem] overflow-y-auto border-purple-200/80">
+                    <h3 className="text-2xl font-bold text-white [text-shadow:_0_1px_2px_rgb(0_0_0_/_20%)] mb-4">Riwayat Transaksi</h3>
+                    <Card className="h-[30rem] overflow-y-auto bg-white/20 border-white/30">
                       <Table>
-                        <TableHeader className="sticky top-0 bg-purple-50">
+                        <TableHeader className="sticky top-0 bg-white/30 backdrop-blur-sm z-10">
                           <TableRow>
-                            <TableHead className="text-purple-800">Tanggal</TableHead>
-                            <TableHead className="text-purple-800">Deskripsi</TableHead>
-                            <TableHead className="text-right text-purple-800">Jumlah</TableHead>
+                            <TableHead className="text-purple-900 font-semibold">Tanggal</TableHead>
+                            <TableHead className="text-purple-900 font-semibold">Deskripsi</TableHead>
+                            <TableHead className="text-right text-purple-900 font-semibold">Jumlah</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {isLoadingTransactions ? (
-                            <TableRow><TableCell colSpan={3} className="text-center h-24 text-slate-500">Memuat data...</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={3} className="text-center h-24 text-gray-800">Memuat data...</TableCell></TableRow>
                           ) : transactions.length > 0 ? (
                             transactions.map(t => (
-                              <TableRow key={t.id} className="border-purple-100/80">
-                                <TableCell>{new Date(t.tanggal).toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric'})}</TableCell>
+                              t && <TableRow key={t.id} className="border-white/20 hover:bg-white/30">
+                                <TableCell className="text-gray-800 font-medium">{new Date(t.tanggal).toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric'})}</TableCell>
                                 <TableCell>
-                                  <div className="font-medium text-slate-800">{t.deskripsi}</div>
-                                  <div className="text-xs text-purple-600">{t.kategori}</div>
+                                  <div className="font-semibold text-gray-900">{t.deskripsi}</div>
+                                  <div className="text-xs text-purple-800 font-medium">{t.kategori}</div>
                                 </TableCell>
-                                <TableCell className="text-right font-mono text-slate-800">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(t.jumlah)}</TableCell>
+                                <TableCell className="text-right font-mono text-gray-900">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(t.jumlah)}</TableCell>
                               </TableRow>
                             ))
                           ) : (
-                            <TableRow><TableCell colSpan={3} className="text-center h-24 text-slate-500">Belum ada transaksi.</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={3} className="text-center h-24 text-gray-800">Belum ada transaksi.</TableCell></TableRow>
                           )}
                         </TableBody>
                       </Table>
@@ -347,13 +378,8 @@ export default function UnifiedFinancePage() {
                 <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.05 } } }} className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-8">
                   {analysisInputFields.map((field) => (
                     <motion.div key={field.id} variants={{ hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } }} className={field.className}>
-                      <Label htmlFor={field.id} className="mb-2 block text-slate-800 font-medium">{field.label}</Label>
-                      <CurrencyInput
-                        id={field.id}
-                        value={field.value}
-                        setter={field.setter}
-                        placeholder="0"
-                      />
+                      <Label htmlFor={field.id} className="mb-2 block text-gray-900 font-medium">{field.label}</Label>
+                      <CurrencyInput id={field.id} value={field.value} setter={field.setter} placeholder="0" />
                     </motion.div>
                   ))}
                 </motion.div>
@@ -370,9 +396,9 @@ export default function UnifiedFinancePage() {
                 </Button>
                 
                 {analysisResults && (
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg text-center">
-                    <p className="text-green-800 font-medium">Analisis berhasil! Status kesehatan UMKM Anda adalah: <span className="font-bold">{analysisResults.prediction_status}</span>.</p>
-                    <p className="mt-2 text-sm text-gray-600">Lihat rekomendasi lengkap di dashboard Anda.</p>
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6 p-4 bg-green-50/50 backdrop-blur-sm border border-green-200 rounded-lg text-center">
+                    <p className="text-green-900 font-medium">Status kesehatan UMKM Anda: <span className="font-bold">{analysisResults.prediction_status}</span>.</p>
+                    <p className="mt-2 text-sm text-gray-800">Lihat rekomendasi lengkap di dashboard Anda.</p>
                     <Button variant="outline" className="mt-4 border-purple-600 text-purple-600 hover:bg-purple-100" onClick={() => window.location.href = '/umkm/dashboard'}>
                       <ArrowLeftCircle className="w-4 h-4 mr-2" /> Kembali ke Dashboard
                     </Button>

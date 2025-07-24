@@ -8,7 +8,7 @@ export default function InvestorLayout({ children }: { children: React.ReactNode
     <UserProvider>
         <div className="flex h-screen">
           <InvestorSidebar /> {/* Gunakan InvestorSidebar yang baru */}
-          <main className="flex-1 overflow-y-auto p-4 bg-gray-50">
+          <main className="flex-1 overflow-y-auto p-4 bg-purple-50">
             {children}
           </main>
         </div>

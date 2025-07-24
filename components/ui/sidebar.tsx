@@ -1,8 +1,9 @@
 "use client";
 import { cn } from "@/lib/utils";
 import React, { useState, createContext, useContext } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion } from "framer-motion"; // PERBAIKAN: Mengganti import motion/react menjadi framer-motion
 import { IconMenu2, IconX } from "@tabler/icons-react";
+import Link from "next/link"; // PERBAIKAN: Mengganti <a> dengan Link
 
 interface Links {
   label: string;
@@ -56,15 +57,20 @@ export const Sidebar = ({
   open,
   setOpen,
   animate,
+  className, // PERBAIKAN: Menambahkan className ke props
 }: {
   children: React.ReactNode;
   open?: boolean;
   setOpen?: React.Dispatch<React.SetStateAction<boolean>>;
   animate?: boolean;
+  className?: string; // PERBAIKAN: Menambahkan tipe untuk className
 }) => {
   return (
     <SidebarProvider open={open} setOpen={setOpen} animate={animate}>
-      {children}
+        {/* PERBAIKAN: Menggabungkan className dari props */}
+        <div className={cn("h-full", className)}>
+            {children}
+        </div>
     </SidebarProvider>
   );
 };
@@ -88,11 +94,12 @@ export const DesktopSidebar = ({
     <>
       <motion.div
         className={cn(
-          "h-full px-4 py-4 hidden  md:flex md:flex-col bg-neutral-100 dark:bg-neutral-800 w-[300px] shrink-0",
+          // PERUBAHAN WARNA
+          "h-full px-4 py-4 hidden md:flex md:flex-col bg-purple-50 dark:bg-gray-800 w-[300px] shrink-0",
           className
         )}
         animate={{
-          width: animate ? (open ? "300px" : "60px") : "300px",
+          width: animate ? (open ? "300px" : "100px") : "300px",
         }}
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
@@ -114,13 +121,15 @@ export const MobileSidebar = ({
     <>
       <div
         className={cn(
-          "h-10 px-4 py-4 flex flex-row md:hidden  items-center justify-between bg-neutral-100 dark:bg-neutral-800 w-full"
+          // PERUBAHAN WARNA
+          "h-10 px-4 py-4 flex flex-row md:hidden items-center justify-between bg-purple-50 dark:bg-gray-800 w-full"
         )}
         {...props}
       >
         <div className="flex justify-end z-20 w-full">
           <IconMenu2
-            className="text-neutral-800 dark:text-neutral-200"
+            // PERUBAHAN WARNA
+            className="text-purple-800 dark:text-purple-200"
             onClick={() => setOpen(!open)}
           />
         </div>
@@ -135,12 +144,14 @@ export const MobileSidebar = ({
                 ease: "easeInOut",
               }}
               className={cn(
-                "fixed h-full w-full inset-0 bg-white dark:bg-neutral-900 p-10 z-[100] flex flex-col justify-between",
+                // PERUBAHAN WARNA
+                "fixed h-full w-full inset-0 bg-white dark:bg-gray-900 p-10 z-[100] flex flex-col justify-between",
                 className
               )}
             >
               <div
-                className="absolute right-10 top-10 z-50 text-neutral-800 dark:text-neutral-200"
+                // PERUBAHAN WARNA
+                className="absolute right-10 top-10 z-50 text-purple-800 dark:text-purple-200"
                 onClick={() => setOpen(!open)}
               >
                 <IconX />
@@ -161,13 +172,14 @@ export const SidebarLink = ({
 }: {
   link: Links;
   className?: string;
+  [key: string]: any; // PERBAIKAN: Menambahkan index signature
 }) => {
   const { open, animate } = useSidebar();
   return (
-    <a
+    <Link // PERBAIKAN: Menggunakan komponen Link
       href={link.href}
       className={cn(
-        "flex items-center justify-start gap-2  group/sidebar py-2",
+        "flex items-center justify-start gap-2 group/sidebar py-2",
         className
       )}
       {...props}
@@ -179,10 +191,11 @@ export const SidebarLink = ({
           display: animate ? (open ? "inline-block" : "none") : "inline-block",
           opacity: animate ? (open ? 1 : 0) : 1,
         }}
-        className="text-neutral-700 dark:text-neutral-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0"
+        // PERUBAHAN WARNA
+        className="text-gray-700 dark:text-gray-200 text-sm group-hover/sidebar:text-purple-600 dark:group-hover/sidebar:text-purple-400 transition duration-150 whitespace-pre inline-block !p-0 !m-0"
       >
         {link.label}
       </motion.span>
-    </a>
+    </Link>
   );
 };

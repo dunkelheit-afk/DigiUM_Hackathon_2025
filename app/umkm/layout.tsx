@@ -17,7 +17,7 @@ export default function UmkmDashboardLayout({
     <UserProvider>
       <SidebarToggleProvider
       >
-        <div className="flex min-h-screen bg-white">
+        <div className="flex min-h-screen bg-purple-50">
           <Sidebar />
 
           <main

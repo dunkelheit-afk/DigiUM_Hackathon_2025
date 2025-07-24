@@ -9,8 +9,7 @@ import {
   IconDashboard,
   IconSettings,
   IconLogout,
-  IconChevronLeft, // Menggunakan ChevronLeft/Right dari Tabler Icons
-  IconChevronRight,
+  IconChevronLeft,
 } from '@tabler/icons-react';
 import { motion } from 'framer-motion'; // Menggunakan framer-motion untuk animasi
 import { cn } from '@/lib/utils'; // Utilitas untuk menggabungkan kelas Tailwind
@@ -70,7 +69,7 @@ export function InvestorSidebar() {
         <SidebarBody className="justify-between gap-10">
           <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
             {/* Header / Logo DigiUM - Disatukan dengan gaya Navbar */}
-            <Link href="/investor/dashboard"> {/* Menggunakan Link dari next/link */}
+            <Link href="/investor/dashboard" className="mt-2"> {/* PERUBAHAN: Menambahkan margin top */}
               <div className={cn(
                 "flex items-center gap-2 cursor-pointer py-1",
                 open ? "justify-start" : "justify-center" // Pusatkan saat tertutup
@@ -78,8 +77,8 @@ export function InvestorSidebar() {
                 <Image
                   src="/Digi.svg"
                   alt="DigiUM Logo"
-                  width={30} // Ukuran statis untuk sidebar
-                  height={30} // Ukuran statis untuk sidebar
+                  width={36} // PERUBAHAN: Ukuran logo diperbesar
+                  height={36} // PERUBAHAN: Ukuran logo diperbesar
                   className="transition-all duration-500"
                 />
                 <motion.span
@@ -97,17 +96,14 @@ export function InvestorSidebar() {
               </div>
             </Link>
 
-            {/* Tombol Toggle Sidebar - Disisipkan secara eksplisit */}
-            {/* Ini akan berfungsi sebagai tombol toggle di desktop dan mobile */}
-            <div className="flex justify-end mt-4">
-              <Button variant="ghost" size="icon" onClick={() => setOpen(!open)}>
-                {open ? (
+            {/* PERUBAHAN: Tombol toggle hanya muncul saat sidebar terbuka */}
+            {open && (
+              <div className="flex justify-end mt-4">
+                <Button variant="ghost" size="icon" onClick={() => setOpen(!open)}>
                   <IconChevronLeft className="h-5 w-5 text-neutral-700 dark:text-neutral-200" />
-                ) : (
-                  <IconChevronRight className="h-5 w-5 text-neutral-700 dark:text-neutral-200" />
-                )}
-              </Button>
-            </div>
+                </Button>
+              </div>
+            )}
 
             {/* Menu Navigasi */}
             <div className="mt-8 flex flex-col gap-2">
@@ -128,11 +124,12 @@ export function InvestorSidebar() {
                   }}
                   className={cn(
                     "flex items-center p-2 rounded-lg hover:bg-purple-100",
-                    // Perbaikan: Warna teks hover disesuaikan dengan HeroSection
                     "hover:text-[#8F87F1]",
                     (item.href === pathname || (item.href === '/investor/dashboard' && pathname === '/'))
-                      ? 'bg-purple-100 text-[#8F87F1]' // Perbaikan: Latar belakang dan teks aktif disesuaikan
-                      : 'text-gray-700' // Teks non-aktif
+                      ? 'bg-purple-100 text-[#8F87F1]' // Latar belakang dan teks aktif disesuaikan
+                      : 'text-gray-700', // Teks non-aktif
+                    // --- PERUBAHAN DI SINI ---
+                    !open && "justify-center" // Menambahkan kelas untuk perataan tengah saat sidebar tertutup
                   )}
                   aria-label={item.label}
                 />
@@ -152,6 +149,8 @@ export function InvestorSidebar() {
                   </div>
                 ),
               }}
+              // --- PERUBAHAN DI SINI ---
+              className={cn(!open && "justify-center")} // Menambahkan kelas untuk perataan tengah saat sidebar tertutup
               aria-label={`Profil ${displayName}`}
             />
             {/* Menampilkan nama UMKM di bawah nama pengguna */}
@@ -164,7 +163,6 @@ export function InvestorSidebar() {
               variant="ghost"
               className={cn(
                 "w-full justify-start mt-4 bg-white text-black",
-                // Perbaikan: Warna hover tombol logout disesuaikan dengan HeroSection
                 "hover:bg-[#8F87F1] hover:text-white",
                 !open ? 'justify-center' : ''
               )}
@@ -178,8 +176,6 @@ export function InvestorSidebar() {
           </div>
         </SidebarBody>
       </Sidebar>
-      {/* Catatan: Konten utama (children dari layout) akan dirender di samping sidebar ini */}
-      {/* Ini akan diatur di app/investor/layout.tsx */}
     </div>
   );
 }
