@@ -201,15 +201,16 @@ export default function UnifiedFinancePage() {
       return;
     }
 
-    const formData = {
-      revenue: Number(revenue),
-      cogs: Number(cogs),
-      operating_expenses: Number(operatingExpenses),
-      total_assets: Number(totalAssets),
-      cash: Number(cash),
-      total_liabilities: Number(totalLiabilities),
-      total_equity: Number(totalEquity),
-    };
+      const formData = {
+        user_id: user.id, // <-- TAMBAHKAN BARIS INI
+        revenue: Number(revenue),
+        cogs: Number(cogs),
+        operating_expenses: Number(operatingExpenses),
+        total_assets: Number(totalAssets),
+        cash: Number(cash),
+        total_liabilities: Number(totalLiabilities),
+        total_equity: Number(totalEquity),
+      };
 
     try {
       const predictResponse = await fetch('/api/predict', {
