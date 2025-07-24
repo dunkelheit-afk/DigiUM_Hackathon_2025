@@ -3,27 +3,32 @@ import json
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from supabase import create_client, Client
-from dotenv import load_dotenv
+# HAPUS BARIS INI: from dotenv import load_dotenv
 
-load_dotenv()
+# HAPUS BARIS INI: load_dotenv()
+
 app = Flask(__name__)
 CORS(app) 
 
+supabase = None
 try:
     url: str = os.environ.get("SUPABASE_URL")
     key: str = os.environ.get("SUPABASE_KEY")
     if not url or not key:
-        raise ValueError("SUPABASE_URL dan SUPABASE_KEY harus diatur di file .env")
+        # Pesan error ini akan muncul di log Vercel jika variabel tidak ditemukan
+        raise ValueError("SUPABASE_URL atau SUPABASE_KEY tidak ditemukan di environment variables Vercel.")
     supabase: Client = create_client(url, key)
 except Exception as e:
+    # Mencetak error yang sebenarnya ke log Vercel untuk debugging
     print(f"ERROR: Gagal menginisialisasi Supabase. {e}")
     supabase = None
 
 @app.route('/api/predict', methods=['POST'])
 def predict():
     if not supabase:
-        return jsonify({"error": "Konfigurasi Supabase di backend belum lengkap."}), 500
+        return jsonify({"error": "Konfigurasi Supabase di backend belum lengkap. Periksa log fungsi di Vercel."}), 500
 
+    # ... sisa kode Anda tetap sama ...
     data = request.get_json()
 
     try:
@@ -39,9 +44,6 @@ def predict():
         return jsonify({"error": f"Field yang dibutuhkan tidak ada: {e}"}), 400
 
     laba_bersih = revenue - cogs - operating_expenses
-
-    # --- PERUBAHAN UTAMA DI SINI ---
-    # Siapkan data untuk dimasukkan ke kolom-kolom individual sesuai skema Anda
     
     net_profit_margin = laba_bersih / revenue if revenue != 0 else 0
     current_ratio = cash / total_liabilities if total_liabilities != 0 else 0
@@ -49,8 +51,6 @@ def predict():
     roa = laba_bersih / total_assets if total_assets != 0 else 0
     asset_turnover = revenue / total_assets if total_assets != 0 else 0
 
-    # Logika klasifikasi tetap sama
-    # (Anda bisa menambahkan kolom total_score ke DB jika ingin menyimpannya juga)
     total_score = (1 if net_profit_margin >= 0.1 else 0) + \
                   (1 if current_ratio >= 1.2 else 0) + \
                   (1 if debt_to_equity < 1.0 else 0) + \
@@ -67,7 +67,6 @@ def predict():
         klasifikasi = "Rentan"
         rekomendasi = "Perlu perhatian khusus. Evaluasi struktur biaya, manajemen utang, dan strategi penjualan untuk meningkatkan kesehatan finansial."
 
-    # Buat record yang "flat" (datar) sesuai skema
     record_to_insert = {
         'user_id': user_id,
         'revenue': revenue,
@@ -79,7 +78,6 @@ def predict():
         'total_equity': total_equity,
         'prediction_status': klasifikasi,
         'recommendation': rekomendasi,
-        # Masukkan setiap rasio ke kolomnya masing-masing
         'net_profit_margin': net_profit_margin,
         'current_ratio': current_ratio,
         'debt_to_equity': debt_to_equity,
