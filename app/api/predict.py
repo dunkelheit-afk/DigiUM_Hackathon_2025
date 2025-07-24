@@ -3,46 +3,62 @@ import json
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from supabase import create_client, Client
-# HAPUS BARIS INI: from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-# HAPUS BARIS INI: load_dotenv()
+# Muat environment variables dari file .env jika ada (untuk development lokal)
+# Baris ini tidak akan berpengaruh saat di-deploy di Vercel
+load_dotenv() 
 
+# Inisialisasi aplikasi Flask
 app = Flask(__name__)
 CORS(app) 
 
+# Inisialisasi Supabase Client
 supabase = None
 try:
+    # Ambil URL dan Key dari environment variables
+    # Saat lokal, ini akan diambil dari file .env. Saat di Vercel, akan diambil dari pengaturan Vercel.
     url: str = os.environ.get("SUPABASE_URL")
     key: str = os.environ.get("SUPABASE_KEY")
+    
     if not url or not key:
         # Pesan error ini akan muncul di log Vercel jika variabel tidak ditemukan
-        raise ValueError("SUPABASE_URL atau SUPABASE_KEY tidak ditemukan di environment variables Vercel.")
+        raise ValueError("SUPABASE_URL atau SUPABASE_KEY tidak ditemukan di environment variables.")
+        
     supabase: Client = create_client(url, key)
 except Exception as e:
-    # Mencetak error yang sebenarnya ke log Vercel untuk debugging
+    # Mencetak error yang sebenarnya ke log untuk debugging
     print(f"ERROR: Gagal menginisialisasi Supabase. {e}")
     supabase = None
 
 @app.route('/api/predict', methods=['POST'])
 def predict():
+    """
+    Endpoint untuk menerima data keuangan, melakukan analisis,
+    menyimpan hasilnya, dan mengembalikan prediksi.
+    """
     if not supabase:
-        return jsonify({"error": "Konfigurasi Supabase di backend belum lengkap. Periksa log fungsi di Vercel."}), 500
+        return jsonify({"error": "Konfigurasi Supabase di backend belum lengkap. Periksa log fungsi."}), 500
 
-    # ... sisa kode Anda tetap sama ...
+    # Mengambil data JSON dari request
     data = request.get_json()
 
+    # Validasi field yang dibutuhkan
     try:
         user_id = data["user_id"]
-        revenue = data["revenue"]
-        cogs = data["cogs"]
-        operating_expenses = data["operating_expenses"]
-        total_assets = data["total_assets"]
-        cash = data["cash"]
-        total_liabilities = data["total_liabilities"]
-        total_equity = data["total_equity"]
+        revenue = float(data["revenue"])
+        cogs = float(data["cogs"])
+        operating_expenses = float(data["operating_expenses"])
+        total_assets = float(data["total_assets"])
+        cash = float(data["cash"])
+        total_liabilities = float(data["total_liabilities"])
+        total_equity = float(data["total_equity"])
     except KeyError as e:
         return jsonify({"error": f"Field yang dibutuhkan tidak ada: {e}"}), 400
+    except (ValueError, TypeError):
+        return jsonify({"error": "Pastikan semua input adalah angka yang valid."}), 400
 
+    # Kalkulasi metrik keuangan
     laba_bersih = revenue - cogs - operating_expenses
     
     net_profit_margin = laba_bersih / revenue if revenue != 0 else 0
@@ -51,12 +67,14 @@ def predict():
     roa = laba_bersih / total_assets if total_assets != 0 else 0
     asset_turnover = revenue / total_assets if total_assets != 0 else 0
 
+    # Penilaian berdasarkan metrik (scoring)
     total_score = (1 if net_profit_margin >= 0.1 else 0) + \
                   (1 if current_ratio >= 1.2 else 0) + \
                   (1 if debt_to_equity < 1.0 else 0) + \
                   (1 if roa > 0.05 else 0) + \
                   (1 if asset_turnover > 0.5 else 0)
     
+    # Klasifikasi dan rekomendasi berdasarkan total skor
     if total_score >= 4:
         klasifikasi = "Sehat"
         rekomendasi = "Kinerja keuangan sangat baik! Pertahankan efisiensi dan terus kembangkan usaha Anda."
@@ -67,6 +85,7 @@ def predict():
         klasifikasi = "Rentan"
         rekomendasi = "Perlu perhatian khusus. Evaluasi struktur biaya, manajemen utang, dan strategi penjualan untuk meningkatkan kesehatan finansial."
 
+    # Menyiapkan data untuk disimpan ke Supabase
     record_to_insert = {
         'user_id': user_id,
         'revenue': revenue,
@@ -85,17 +104,23 @@ def predict():
         'asset_turnover': asset_turnover
     }
 
+    # Menyimpan data ke tabel 'analysis_records' di Supabase
     try:
         api_response = supabase.table('analysis_records').insert(record_to_insert).execute()
-        if len(api_response.data) == 0 and api_response.error:
-             raise Exception(api_response.error.message)
+        # Cek jika ada error dari Supabase API
+        if api_response.error:
+            raise Exception(api_response.error.message)
     except Exception as e:
+        print(f"Supabase insertion error: {str(e)}") # Log error untuk debugging
         return jsonify({"error": f"Gagal menyimpan ke Supabase dari backend: {str(e)}"}), 500
 
+    # Mengembalikan hasil prediksi dan rekomendasi ke client
     return jsonify({
         "prediction_status": klasifikasi,
         "recommendation": rekomendasi,
     })
 
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+# Baris ini dibutuhkan untuk menjalankan server Flask secara lokal
+if __name__ == "__main__":
+    # Port 5001 digunakan agar tidak bentrok dengan port default Next.js (3000) atau Vite (5173)
+    app.run(debug=True, port=5001)
