@@ -1,22 +1,23 @@
-// app/contexts/UserContext.tsx
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
-import { useRouter, usePathname } from 'next/navigation'; // Import useRouter dan usePathname
+import { useRouter, usePathname } from 'next/navigation';
 
-// Definisikan tipe data untuk profil, termasuk 'role' dan 'has_selected_role'
+// 1. PERBAIKAN: Lengkapi tipe data Profile
 export interface Profile {
   id: string;
   full_name: string | null;
-  umkm_name: string | null;
   phone: string | null;
   role: "umkm" | "investor" | "admin" | null;
   has_selected_role: boolean | null;
+  umkm_name: string | null;
+  umkm_category: string | null;
+  umkm_description: string | null;
+  umkm_image_url: string | null;
 }
 
-// Tipe untuk context
 interface UserContextType {
   user: User | null;
   profile: Profile | null;
@@ -35,9 +36,10 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchProfile = useCallback(async (currentUser: User) => {
+    // 2. PERBAIKAN: Tambahkan kolom yang hilang di statement SELECT
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, umkm_name, phone, role, has_selected_role') // Ambil kolom baru
+      .select('*, umkm_category, umkm_description, umkm_image_url') // Ambil semua kolom + kolom spesifik UMKM
       .eq('id', currentUser.id)
       .maybeSingle();
 
@@ -47,9 +49,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     } else {
       setProfile(data);
 
-      // **LOGIKA PENGALIHAN SISI KLIEN (FALLBACK)**
-      // Jika profil sudah dimuat, pengguna belum memilih peran,
-      // dan mereka tidak sedang di halaman choose-role, lakukan pengalihan.
       if (data && !data.has_selected_role && pathname !== '/auth/choose-role') {
         router.push('/auth/choose-role');
       }
@@ -73,7 +72,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
-      // Jika ada perubahan sesi (login/logout), fetch ulang profil jika ada user
       if (currentUser) {
         fetchProfile(currentUser);
       } else {

@@ -30,30 +30,26 @@ export async function GET(request: Request) {
     if (!error && session) {
         const user = session.user;
         
-        // --- PERBAIKAN: Logika Pengalihan Berdasarkan Peran ---
+        // --- PERBAIKAN LOGIKA DI SINI ---
         
-        // 1. Ambil profil pengguna dari tabel 'profiles'
-        const { data: profile, error: profileError } = await supabase
+        // 1. Ambil profil pengguna, pastikan untuk menyertakan 'has_selected_role'
+        const { data: profile } = await supabase
             .from('profiles')
-            .select('role')
+            .select('role, has_selected_role') // Ambil kolom has_selected_role
             .eq('id', user.id)
             .single();
 
-        if (profileError || !profile) {
-            console.error("Gagal mengambil profil atau profil tidak ditemukan:", profileError);
-            // Jika profil atau peran belum ada, arahkan ke halaman pemilihan peran
-            return NextResponse.redirect(`${origin}/auth/choose-role`);
+        // 2. Jika profil ada DAN peran sudah dipilih, arahkan ke dasbor yang benar
+        if (profile && profile.has_selected_role) {
+            const redirectUrl = profile.role === 'investor' 
+                ? `${origin}/investor/dashboard` 
+                : `${origin}/umkm/dashboard`;
+            return NextResponse.redirect(redirectUrl);
         }
-
-        // 2. Arahkan pengguna berdasarkan kolom 'role'
-        if (profile.role === 'INVESTOR') {
-            return NextResponse.redirect(`${origin}/investor/dashboard`);
-        } else if (profile.role === 'UMKM') {
-            return NextResponse.redirect(`${origin}/umkm/dashboard`);
-        } else {
-            // Fallback jika peran tidak dikenali atau null
-            return NextResponse.redirect(`${origin}/auth/choose-role`);
-        }
+        
+        // 3. Jika profil belum ada, atau peran belum dipilih, arahkan ke halaman pemilihan peran
+        // Ini akan menangani pengguna baru dan pengguna lama yang belum selesai mendaftar.
+        return NextResponse.redirect(`${origin}/auth/choose-role`);
     }
   }
 

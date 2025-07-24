@@ -27,12 +27,12 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'placehold.co',
       },
-      // Anda bisa menambahkan pattern lain di sini jika perlu
-      // Contoh dari file Anda sebelumnya:
-      // {
-      //   protocol: 'https',
-      //   hostname: 'images.unsplash.com',
-      // },
+      // -- TAMBAHKAN BLOK INI --
+      {
+        protocol: 'https',
+        hostname: 'igsxptrenncbnspoqird.supabase.co',
+      },
+      // -----------------------
     ],
   },
 };

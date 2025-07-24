@@ -1,5 +1,4 @@
 import type { Config } from "tailwindcss"
-import animate from "tailwindcss-animate"
 
 const config: Config = {
   darkMode: ["class"],
@@ -133,7 +132,9 @@ const config: Config = {
     },
   },
    plugins: [
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     require('tailwindcss-animate'), // Plugin Anda yang sudah ada
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     require('@tailwindcss/typography'), // <-- TAMBAHKAN PLUGIN BARU DI SINI
   ],
 };
