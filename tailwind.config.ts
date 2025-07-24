@@ -132,7 +132,10 @@ const config: Config = {
       },
     },
   },
-  plugins: [animate], // Menggunakan 'animate' dari import ES Module
-}
+   plugins: [
+    require('tailwindcss-animate'), // Plugin Anda yang sudah ada
+    require('@tailwindcss/typography'), // <-- TAMBAHKAN PLUGIN BARU DI SINI
+  ],
+};
 
 export default config
