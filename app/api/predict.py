@@ -18,8 +18,8 @@ supabase = None
 try:
     # Ambil URL dan Key dari environment variables
     # Saat lokal, ini akan diambil dari file .env. Saat di Vercel, akan diambil dari pengaturan Vercel.
-    url: str = os.environ.get("SUPABASE_URL")
-    key: str = os.environ.get("SUPABASE_KEY")
+    url: str = os.environ.get("NEXT_PUBLIC_SUPABASE_URL")
+    key: str = os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY")
     
     if not url or not key:
         # Pesan error ini akan muncul di log Vercel jika variabel tidak ditemukan
