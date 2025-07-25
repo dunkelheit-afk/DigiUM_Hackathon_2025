@@ -1,238 +1,207 @@
-// app/(umkm)/dashboard/page.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Separator } from '@/components/ui/separator';
-import {
-  AlertTriangle, TrendingUp, TrendingDown, Menu, Loader2, Info, Scale, Landmark, Banknote, FileText, PiggyBank, HandCoins, Sparkles
-} from 'lucide-react';
-import {
-  ResponsiveContainer, RadialBarChart, RadialBar, PolarAngleAxis, Cell
-} from 'recharts';
-import { useSidebarToggle } from '@/app/contexts/SidebarToggleContext';
-import ReactMarkdown from 'react-markdown';
+import React, { useEffect, useState } from 'react';
+import { useUser } from '@/app/contexts/UserContext';
+import { createClient } from '@/lib/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Loader2, AlertCircle, TrendingUp, ShieldCheck, ShieldAlert, ShieldQuestion } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-// Mendefinisikan struktur data lengkap yang diharapkan dari API
-interface AnalysisData {
-  prediction_status: 'Sehat' | 'Cukup Sehat' | 'Rentan' | 'sehat' | 'cukup' | 'rentan';
+// Tipe data untuk hasil analisis
+interface AnalysisRecord {
+  id: string;
+  created_at: string;
+  prediction_status: string;
+  recommendation: string;
   net_profit_margin: number;
   current_ratio: number;
   debt_to_equity: number;
   roa: number;
   asset_turnover: number;
-  revenue: number;
-  cogs: number;
-  operating_expenses: number;
-  total_assets: number;
-  cash: number;
-  total_liabilities: number;
-  total_equity: number;
-  recommendation: string;
 }
 
-// --- KOMPONEN-KOMPONEN UI ---
-
-const FinancialSummaryItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: number }) => (
-  <div className="flex items-center justify-between py-2 border-b border-purple-100/80 last:border-b-0">
-    <div className="flex items-center">
-      <Icon className="w-5 h-5 text-purple-600 mr-3" />
-      <span className="text-sm text-slate-700">{label}</span>
-    </div>
-    <span className="font-mono text-sm text-slate-800">
-      {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value)}
-    </span>
-  </div>
-);
-
-const KpiCard = ({ title, value, recommendation, formula, Icon, isGood }: { title: string, value: string, recommendation: string, formula: string, Icon: React.ElementType, isGood: boolean }) => (
-  <Card className="bg-white/80 backdrop-blur-sm border-purple-200/80 rounded-2xl shadow-lg shadow-purple-200/50">
-    <CardHeader className="flex flex-row items-center justify-between pb-2">
-      <CardTitle className="text-sm font-medium text-purple-900">{title}</CardTitle>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="ghost" size="icon" className="w-6 h-6 text-slate-400 hover:bg-purple-100">
-            <Info className="w-4 h-4" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-64 text-sm">
-          <p className="font-semibold">Rekomendasi Nilai:</p>
-          <p className="mb-2">{recommendation}</p>
-          <Separator />
-          <p className="font-semibold mt-2">Rumus Perhitungan:</p>
-          <p className="italic text-slate-600">{formula}</p>
-        </PopoverContent>
-      </Popover>
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold text-slate-800">{value}</div>
-      <div className={`text-xs flex items-center mt-1 ${isGood ? 'text-green-600' : 'text-red-600'}`}>
-        <Icon className="w-4 h-4 mr-1"/>
-        {isGood ? 'Posisi Baik' : 'Butuh Perhatian'}
-      </div>
-    </CardContent>
-  </Card>
-);
-
-const HealthGaugeChart = ({ status }: { status: AnalysisData['prediction_status'] }) => {
-  const normalizedStatus = status.toLowerCase();
-  const value = normalizedStatus.includes('sehat') ? 100 : normalizedStatus.includes('cukup') ? 66 : 33;
-  const color = normalizedStatus.includes('sehat') ? '#22c55e' : normalizedStatus.includes('cukup') ? '#f59e0b' : '#ef4444';
-  const data = [{ name: 'Kesehatan', value }];
-  const displayStatus = status.charAt(0).toUpperCase() + status.slice(1);
+// Komponen untuk menampilkan metrik individual
+const MetricCard = ({ title, value, status }: { title: string; value: string; status: 'good' | 'average' | 'bad' }) => {
+  const statusClasses = {
+    good: 'text-green-600',
+    average: 'text-yellow-600',
+    bad: 'text-red-600',
+  };
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <RadialBarChart innerRadius="70%" outerRadius="100%" data={data} startAngle={180} endAngle={0} barSize={30}>
-        <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
-        <RadialBar background dataKey='value' cornerRadius={15}><Cell fill={color} /></RadialBar>
-        <text x="50%" y="70%" textAnchor="middle" dominantBaseline="middle" className="text-4xl font-bold fill-slate-800">{displayStatus}</text>
-        <text x="50%" y="85%" textAnchor="middle" dominantBaseline="middle" className="text-sm fill-slate-500">Status Keseluruhan</text>
-      </RadialBarChart>
-    </ResponsiveContainer>
+    <motion.div
+      variants={{ hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } }}
+      className="bg-white/50 p-4 rounded-lg shadow-sm"
+    >
+      <p className="text-sm text-gray-600">{title}</p>
+      <p className={`text-2xl font-bold ${statusClasses[status]}`}>{value}</p>
+    </motion.div>
   );
 };
 
-
-export default function UmkmDashboardPage() {
-  const { toggleSidebar } = useSidebarToggle();
-  const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
+export default function DashboardPage() {
+  const { user, isLoading: isUserLoading } = useUser();
+  const supabase = createClient();
+  const [latestAnalysis, setLatestAnalysis] = useState<AnalysisRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchLatestAnalysis = async () => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       setError(null);
+
       try {
-        const response = await fetch('/api/analysis/latest');
-        
-        // --- PERBAIKAN ERROR HANDLING ---
-        if (!response.ok) {
-            const contentType = response.headers.get("content-type");
-            let errorMessage;
-            if (contentType && contentType.includes("application/json")) {
-                const errData = await response.json();
-                errorMessage = errData.message || "Gagal memuat data analisis.";
-            } else {
-                // Jika respons bukan JSON (misalnya error 500 dari Vercel), berikan pesan umum
-                errorMessage = `Server Error: ${response.status}. Pastikan environment variables di Vercel sudah benar.`;
-            }
-            throw new Error(errorMessage);
+        // Mengambil data analisis TERBARU untuk user yang sedang login
+        const { data, error } = await supabase
+          .from('analysis_records')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single(); // .single() akan mengambil satu baris atau null
+
+        if (error && error.code !== 'PGRST116') { // Abaikan error 'PGRST116' (no rows found)
+          throw error;
         }
 
-        const data: AnalysisData = await response.json();
-        setAnalysisData(data);
+        setLatestAnalysis(data);
 
-      } catch (err: unknown) {
-          if (err instanceof Error) {
-            setError(err.message);
-          } else {
-            setError('Terjadi kesalahan yang tidak diketahui.');
-          }
+      } catch (err: any) {
+        console.error("Gagal memuat analisis terakhir:", err);
+        setError("Gagal memuat data analisis terakhir. Coba muat ulang halaman.");
       } finally {
         setIsLoading(false);
       }
     };
-    fetchLatestAnalysis();
-  }, []);
 
-  if (isLoading) {
-    return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin text-purple-600"/></div>;
+    if (!isUserLoading) {
+      fetchLatestAnalysis();
+    }
+  }, [user, isUserLoading, supabase]);
+
+  const getStatusInfo = (status: string | undefined) => {
+    switch (status) {
+      case 'Sehat':
+        return { Icon: ShieldCheck, color: 'text-green-500', bgColor: 'bg-green-50', text: 'Kinerja keuangan Anda sangat baik. Pertahankan!' };
+      case 'Cukup Sehat':
+        return { Icon: ShieldAlert, color: 'text-yellow-500', bgColor: 'bg-yellow-50', text: 'Kinerja keuangan cukup baik, ada ruang untuk perbaikan.' };
+      case 'Rentan':
+        return { Icon: ShieldAlert, color: 'text-red-500', bgColor: 'bg-red-50', text: 'Kinerja keuangan perlu perhatian khusus.' };
+      default:
+        return { Icon: ShieldQuestion, color: 'text-gray-500', bgColor: 'bg-gray-100', text: 'Belum ada data analisis yang ditemukan.' };
+    }
+  };
+
+  // ================== INI BAGIAN PERBAIKAN UTAMA ==================
+  // Tampilkan loading spinner saat data sedang dimuat
+  if (isLoading || isUserLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-12 w-12 animate-spin text-purple-600" />
+        <p className="ml-4 text-lg">Memuat Dashboard...</p>
+      </div>
+    );
   }
-  
+
+  // Tampilkan pesan error jika terjadi
   if (error) {
     return (
-      <div className="flex flex-col justify-center items-center h-screen text-center p-4">
-        <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4"/>
-        <h2 className="text-2xl font-bold text-slate-800">Data Tidak Tersedia</h2>
-        <p className="text-slate-500 mt-2">{error}</p>
-        <Button className="mt-6 bg-purple-600 hover:bg-purple-700" onClick={() => window.location.href='/umkm/financial-analysis'}>
-          Coba Jalankan Analisis
-        </Button>
+      <div className="flex flex-col items-center justify-center h-screen text-center">
+        <AlertCircle className="h-12 w-12 text-red-500" />
+        <h2 className="mt-4 text-xl font-semibold">Oops, terjadi kesalahan</h2>
+        <p className="text-gray-600">{error}</p>
       </div>
     );
   }
-
-  if (!analysisData) {
-    return (
-      <div className="flex flex-col justify-center items-center h-screen text-center p-4">
-        <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4"/>
-        <h2 className="text-2xl font-bold text-slate-800">Belum Ada Analisis</h2>
-        <p className="text-slate-500 mt-2">Anda belum pernah melakukan analisis. Silakan jalankan analisis pertama Anda.</p>
-        <Button className="mt-6 bg-purple-600 hover:bg-purple-700" onClick={() => window.location.href='/umkm/financial-analysis'}>
-          Jalankan Analisis Pertama
-        </Button>
-      </div>
-    );
-  }
-
-  const financialSummaryData = [
-    { label: "Pendapatan", value: analysisData.revenue, icon: TrendingUp },
-    { label: "Harga Pokok Penjualan", value: analysisData.cogs, icon: TrendingDown },
-    { label: "Biaya Operasional", value: analysisData.operating_expenses, icon: FileText },
-    { label: "Total Aset", value: analysisData.total_assets, icon: Landmark },
-    { label: "Kas", value: analysisData.cash, icon: Banknote },
-    { label: "Total Kewajiban", value: analysisData.total_liabilities, icon: Scale },
-    { label: "Total Ekuitas", value: analysisData.total_equity, icon: PiggyBank },
-  ];
-
-  const kpiCards = [
-      { title: "Margin Laba Bersih (NPM)", value: `${(analysisData.net_profit_margin * 100).toFixed(2)}%`, Icon: TrendingUp, isGood: analysisData.net_profit_margin >= 0.1, recommendation: "Diatas atau sama dengan 10%", formula: "(Laba Bersih / Pendapatan) x 100%" },
-      { title: "Rasio Lancar (CR)", value: analysisData.current_ratio.toFixed(2), Icon: TrendingUp, isGood: analysisData.current_ratio >= 1.2 && analysisData.current_ratio <= 2.0, recommendation: "Antara 1.2 - 2.0", formula: "Total Aset Lancar / Total Kewajiban Lancar" },
-      { title: "Utang thd. Ekuitas (DER)", value: analysisData.debt_to_equity.toFixed(2), Icon: TrendingDown, isGood: analysisData.debt_to_equity < 1.0, recommendation: "Di bawah 1.0", formula: "Total Kewajiban / Total Ekuitas" },
-      { title: "Return on Assets (ROA)", value: `${(analysisData.roa * 100).toFixed(2)}%`, Icon: TrendingUp, isGood: analysisData.roa > 0.05, recommendation: "Lebih dari 5%", formula: "(Laba Bersih / Total Aset) x 100%" },
-      { title: "Perputaran Aset (TATO)", value: analysisData.asset_turnover.toFixed(2), Icon: HandCoins, isGood: analysisData.asset_turnover > 0.5, recommendation: "Lebih dari 0.5", formula: "Pendapatan / Total Aset" },
-  ];
+  
+  // Setelah loading selesai, baru kita render konten utama
+  const { Icon, color, bgColor, text } = getStatusInfo(latestAnalysis?.prediction_status);
 
   return (
-    <div className="space-y-6 bg-gradient-to-br from-purple-50 via-white to-white p-6 rounded-lg">
-      <div className="flex justify-between items-center">
-        <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard Kesehatan Finansial</h1>
-            <p className="text-slate-500">Selamat datang kembali! Berikut adalah ringkasan bisnis terbaru Anda.</p>
-        </div>
-        <Button variant="ghost" size="icon" className="text-gray-700 hover:bg-purple-100/60 hidden md:inline-flex" onClick={toggleSidebar}><Menu className="w-6 h-6" /></Button>
-      </div>
+    <div className="p-4 sm:p-6 md:p-8 min-h-screen bg-gray-50">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="max-w-5xl mx-auto"
+      >
+        <h1 className="text-3xl font-bold text-gray-800 mb-6">Dashboard Keuangan</h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        
-        <div className="lg:col-span-3 space-y-6">
-            <Card className="bg-white/80 backdrop-blur-sm border-purple-200/80 rounded-2xl shadow-lg shadow-purple-200/50">
-                <CardHeader><CardTitle className="text-purple-900">Status Kesehatan</CardTitle></CardHeader>
-                <CardContent className="h-64"><HealthGaugeChart status={analysisData.prediction_status} /></CardContent>
-            </Card>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {kpiCards.slice(0, 3).map(kpi => <KpiCard key={kpi.title} {...kpi} />)}
+        {/* Kartu Status Utama */}
+        <Card className={`mb-8 shadow-lg ${bgColor}`}>
+          <CardHeader>
+            <div className="flex items-center gap-4">
+              <Icon className={`h-10 w-10 ${color}`} />
+              <div>
+                <CardTitle className={`text-2xl font-bold ${color}`}>
+                  {latestAnalysis?.prediction_status || 'Belum Dianalisis'}
+                </CardTitle>
+                <CardDescription className="text-gray-700">{text}</CardDescription>
+              </div>
             </div>
-             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {kpiCards.slice(3, 5).map(kpi => <KpiCard key={kpi.title} {...kpi} />)}
-            </div>
-        </div>
+          </CardHeader>
+          {latestAnalysis && (
+             <CardContent>
+                <p className="font-semibold text-gray-800">Rekomendasi untuk Anda:</p>
+                <p className="text-gray-600 mt-1">{latestAnalysis.recommendation}</p>
+             </CardContent>
+          )}
+        </Card>
 
-        <div className="lg:col-span-2 space-y-6">
-            <Card className="bg-white/80 backdrop-blur-sm border-purple-200/80 rounded-2xl shadow-lg shadow-purple-200/50">
-                <CardHeader><CardTitle className="text-purple-900">Ringkasan Finansial</CardTitle></CardHeader>
-                <CardContent>
-                    {financialSummaryData.map(item => <FinancialSummaryItem key={item.label} {...item} />)}
-                </CardContent>
-            </Card>
-             <Card className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl shadow-lg shadow-purple-300">
-                <CardHeader>
-                    <CardTitle className="flex items-center">
-                        <Sparkles className="w-5 h-5 mr-2 text-yellow-300" />
-                        Rekomendasi AI
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="text-purple-100 prose prose-sm prose-invert max-w-none">
-                    <ReactMarkdown>
-                        {analysisData.recommendation}
-                    </ReactMarkdown>
-                </CardContent>
-            </Card>
-        </div>
-      </div>
+        {/* Tampilkan detail metrik HANYA JIKA ada data analisis */}
+        {latestAnalysis ? (
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Detail Metrik Terakhir</h2>
+            <motion.div 
+              initial="hidden"
+              animate="visible"
+              variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
+              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4"
+            >
+              <MetricCard 
+                title="Net Profit Margin" 
+                value={`${(latestAnalysis.net_profit_margin * 100).toFixed(2)}%`}
+                status={latestAnalysis.net_profit_margin >= 0.1 ? 'good' : 'bad'}
+              />
+              <MetricCard 
+                title="Current Ratio" 
+                value={latestAnalysis.current_ratio.toFixed(2)}
+                status={latestAnalysis.current_ratio >= 1.2 ? 'good' : 'bad'}
+              />
+              <MetricCard 
+                title="Debt to Equity" 
+                value={latestAnalysis.debt_to_equity.toFixed(2)}
+                status={latestAnalysis.debt_to_equity < 1.0 ? 'good' : 'average'}
+              />
+              <MetricCard 
+                title="Return on Assets (ROA)" 
+                value={`${(latestAnalysis.roa * 100).toFixed(2)}%`}
+                status={latestAnalysis.roa > 0.05 ? 'good' : 'bad'}
+              />
+              <MetricCard 
+                title="Asset Turnover" 
+                value={latestAnalysis.asset_turnover.toFixed(2)}
+                status={latestAnalysis.asset_turnover > 0.5 ? 'good' : 'average'}
+              />
+            </motion.div>
+          </div>
+        ) : (
+          <Card className="text-center p-8">
+            <CardHeader>
+              <TrendingUp className="mx-auto h-12 w-12 text-gray-400" />
+              <CardTitle>Mulai Analisis Pertama Anda</CardTitle>
+              <CardDescription>
+                Data hasil analisis keuangan Anda akan muncul di sini setelah Anda menyelesaikannya.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        )}
+      </motion.div>
     </div>
   );
 }
