@@ -56,16 +56,15 @@ export default function DashboardPage() {
       setError(null);
 
       try {
-        // Mengambil data analisis TERBARU untuk user yang sedang login
         const { data, error } = await supabase
           .from('analysis_records')
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(1)
-          .single(); // .single() akan mengambil satu baris atau null
+          .single();
 
-        if (error && error.code !== 'PGRST116') { // Abaikan error 'PGRST116' (no rows found)
+        if (error && error.code !== 'PGRST116') {
           throw error;
         }
 
@@ -97,8 +96,6 @@ export default function DashboardPage() {
     }
   };
 
-  // ================== PERBAIKAN UTAMA ADA DI SINI ==================
-  // Tampilkan loading spinner saat data user atau data analisis sedang dimuat
   if (isLoading || isUserLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -108,7 +105,6 @@ export default function DashboardPage() {
     );
   }
 
-  // Tampilkan pesan error jika terjadi kegagalan fetch data
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-screen text-center">
@@ -119,7 +115,6 @@ export default function DashboardPage() {
     );
   }
   
-  // Setelah loading selesai, baru kita render konten utama
   const { Icon, color, bgColor, text } = getStatusInfo(latestAnalysis?.prediction_status);
 
   return (
@@ -132,7 +127,6 @@ export default function DashboardPage() {
       >
         <h1 className="text-3xl font-bold text-gray-800 mb-6">Dashboard Keuangan</h1>
 
-        {/* Kartu Status Utama */}
         <Card className={`mb-8 shadow-lg ${bgColor}`}>
           <CardHeader>
             <div className="flex items-center gap-4">
@@ -153,7 +147,6 @@ export default function DashboardPage() {
           )}
         </Card>
 
-        {/* Tampilkan detail metrik HANYA JIKA ada data analisis */}
         {latestAnalysis ? (
           <div>
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Detail Metrik Terakhir</h2>
@@ -163,29 +156,30 @@ export default function DashboardPage() {
               variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
               className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4"
             >
+              {/* PERBAIKAN: Tambahkan pengecekan null sebelum memanggil .toFixed() */}
               <MetricCard 
                 title="Net Profit Margin" 
-                value={`${(latestAnalysis.net_profit_margin * 100).toFixed(2)}%`}
+                value={`${((latestAnalysis.net_profit_margin || 0) * 100).toFixed(2)}%`}
                 status={latestAnalysis.net_profit_margin >= 0.1 ? 'good' : 'bad'}
               />
               <MetricCard 
                 title="Current Ratio" 
-                value={latestAnalysis.current_ratio.toFixed(2)}
+                value={(latestAnalysis.current_ratio || 0).toFixed(2)}
                 status={latestAnalysis.current_ratio >= 1.2 ? 'good' : 'bad'}
               />
               <MetricCard 
                 title="Debt to Equity" 
-                value={latestAnalysis.debt_to_equity.toFixed(2)}
+                value={(latestAnalysis.debt_to_equity || 0).toFixed(2)}
                 status={latestAnalysis.debt_to_equity < 1.0 ? 'good' : 'average'}
               />
               <MetricCard 
                 title="Return on Assets (ROA)" 
-                value={`${(latestAnalysis.roa * 100).toFixed(2)}%`}
+                value={`${((latestAnalysis.roa || 0) * 100).toFixed(2)}%`}
                 status={latestAnalysis.roa > 0.05 ? 'good' : 'bad'}
               />
               <MetricCard 
                 title="Asset Turnover" 
-                value={latestAnalysis.asset_turnover.toFixed(2)}
+                value={(latestAnalysis.asset_turnover || 0).toFixed(2)}
                 status={latestAnalysis.asset_turnover > 0.5 ? 'good' : 'average'}
               />
             </motion.div>
