@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Loader2, AlertCircle, TrendingUp, ShieldCheck, ShieldAlert, ShieldQuestion } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-// Tipe data untuk hasil analisis
+// Tipe data untuk hasil analisis tetap sama
 interface AnalysisRecord {
   id: string;
   created_at: string;
@@ -20,24 +20,61 @@ interface AnalysisRecord {
   asset_turnover: number;
 }
 
-// Komponen untuk menampilkan metrik individual
-const MetricCard = ({ title, value, status }: { title: string; value: string; status: 'good' | 'average' | 'bad' }) => {
+// ================== REFACTOR KOMPONEN METRICCARD ==================
+// Komponen MetricCard sekarang lebih pintar.
+// Ia menerima nilai mentah (raw value) dan mengurus format & statusnya sendiri.
+type MetricStatus = 'good' | 'average' | 'bad';
+
+interface MetricCardProps {
+  title: string;
+  value: number | null | undefined; // Nilai bisa null atau undefined saat loading/error
+  formatAs?: 'percentage' | 'decimal'; // Opsi untuk format
+  // Tentukan ambang batas untuk status 'good' atau 'average'
+  thresholds: {
+    good: (v: number) => boolean;
+    average?: (v: number) => boolean;
+  };
+}
+
+const MetricCard = ({ title, value, formatAs = 'decimal', thresholds }: MetricCardProps) => {
+  // 1. Menentukan Status (good, average, bad) secara internal
+  let status: MetricStatus = 'bad';
+  if (value !== null && value !== undefined) {
+    if (thresholds.good(value)) {
+      status = 'good';
+    } else if (thresholds.average && thresholds.average(value)) {
+      status = 'average';
+    }
+  }
+
+  // 2. Memformat Tampilan Nilai secara internal (menangani null/undefined)
+  const displayValue = (): string => {
+    const numValue = value ?? 0; // Jika value null/undefined, anggap 0
+    const formatted = formatAs === 'percentage'
+      ? `${(numValue * 100).toFixed(2)}%`
+      : numValue.toFixed(2);
+    return value === null || value === undefined ? '-' : formatted;
+  };
+
   const statusClasses = {
     good: 'text-green-600',
     average: 'text-yellow-600',
     bad: 'text-red-600',
   };
+
   return (
     <motion.div
       variants={{ hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } }}
       className="bg-white/50 p-4 rounded-lg shadow-sm"
     >
       <p className="text-sm text-gray-600">{title}</p>
-      <p className={`text-2xl font-bold ${statusClasses[status]}`}>{value}</p>
+      <p className={`text-2xl font-bold ${statusClasses[status]}`}>{displayValue()}</p>
     </motion.div>
   );
 };
 
+
+// ================== KOMPONEN UTAMA DASHBOARDPAGE ==================
 export default function DashboardPage() {
   const { user, isLoading: isUserLoading } = useUser();
   const supabase = createClient();
@@ -51,10 +88,8 @@ export default function DashboardPage() {
         setIsLoading(false);
         return;
       }
-
       setIsLoading(true);
       setError(null);
-
       try {
         const { data, error } = await supabase
           .from('analysis_records')
@@ -63,13 +98,8 @@ export default function DashboardPage() {
           .order('created_at', { ascending: false })
           .limit(1)
           .single();
-
-        if (error && error.code !== 'PGRST116') {
-          throw error;
-        }
-
+        if (error && error.code !== 'PGRST116') throw error;
         setLatestAnalysis(data);
-
       } catch (err: any) {
         console.error("Gagal memuat analisis terakhir:", err);
         setError("Gagal memuat data analisis terakhir. Coba muat ulang halaman.");
@@ -77,10 +107,7 @@ export default function DashboardPage() {
         setIsLoading(false);
       }
     };
-
-    if (!isUserLoading) {
-      fetchLatestAnalysis();
-    }
+    if (!isUserLoading) fetchLatestAnalysis();
   }, [user, isUserLoading, supabase]);
 
   const getStatusInfo = (status: string | undefined) => {
@@ -126,7 +153,6 @@ export default function DashboardPage() {
         className="max-w-5xl mx-auto"
       >
         <h1 className="text-3xl font-bold text-gray-800 mb-6">Dashboard Keuangan</h1>
-
         <Card className={`mb-8 shadow-lg ${bgColor}`}>
           <CardHeader>
             <div className="flex items-center gap-4">
@@ -156,31 +182,33 @@ export default function DashboardPage() {
               variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
               className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4"
             >
-              {/* PERBAIKAN: Tambahkan pengecekan null sebelum memanggil .toFixed() */}
+              {/* Logika status dan format sekarang ada di dalam MetricCard */}
               <MetricCard 
                 title="Net Profit Margin" 
-                value={`${((latestAnalysis.net_profit_margin || 0) * 100).toFixed(2)}%`}
-                status={latestAnalysis.net_profit_margin >= 0.1 ? 'good' : 'bad'}
+                value={latestAnalysis.net_profit_margin}
+                formatAs="percentage"
+                thresholds={{ good: v => v >= 0.1 }}
               />
               <MetricCard 
                 title="Current Ratio" 
-                value={(latestAnalysis.current_ratio || 0).toFixed(2)}
-                status={latestAnalysis.current_ratio >= 1.2 ? 'good' : 'bad'}
+                value={latestAnalysis.current_ratio}
+                thresholds={{ good: v => v >= 1.2 }}
               />
               <MetricCard 
                 title="Debt to Equity" 
-                value={(latestAnalysis.debt_to_equity || 0).toFixed(2)}
-                status={latestAnalysis.debt_to_equity < 1.0 ? 'good' : 'average'}
+                value={latestAnalysis.debt_to_equity}
+                thresholds={{ good: v => v < 1.0, average: v => v < 1.5 }}
               />
               <MetricCard 
                 title="Return on Assets (ROA)" 
-                value={`${((latestAnalysis.roa || 0) * 100).toFixed(2)}%`}
-                status={latestAnalysis.roa > 0.05 ? 'good' : 'bad'}
+                value={latestAnalysis.roa}
+                formatAs="percentage"
+                thresholds={{ good: v => v > 0.05 }}
               />
               <MetricCard 
                 title="Asset Turnover" 
-                value={(latestAnalysis.asset_turnover || 0).toFixed(2)}
-                status={latestAnalysis.asset_turnover > 0.5 ? 'good' : 'average'}
+                value={latestAnalysis.asset_turnover}
+                thresholds={{ good: v => v > 1.0, average: v => v > 0.5 }}
               />
             </motion.div>
           </div>
