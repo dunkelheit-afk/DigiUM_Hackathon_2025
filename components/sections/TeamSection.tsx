@@ -98,7 +98,6 @@ const TeamMemberCard = ({ member, animationClasses }: { member: TeamMember; anim
             <Image
               src={member.image}
               alt={member.alt}
-              quality={100}
               fill
               className="object-cover"
               unoptimized={true}

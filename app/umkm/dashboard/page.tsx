@@ -97,8 +97,8 @@ export default function DashboardPage() {
     }
   };
 
-  // ================== INI BAGIAN PERBAIKAN UTAMA ==================
-  // Tampilkan loading spinner saat data sedang dimuat
+  // ================== PERBAIKAN UTAMA ADA DI SINI ==================
+  // Tampilkan loading spinner saat data user atau data analisis sedang dimuat
   if (isLoading || isUserLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -108,7 +108,7 @@ export default function DashboardPage() {
     );
   }
 
-  // Tampilkan pesan error jika terjadi
+  // Tampilkan pesan error jika terjadi kegagalan fetch data
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-screen text-center">
