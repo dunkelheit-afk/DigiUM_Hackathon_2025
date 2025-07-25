@@ -162,7 +162,6 @@ export default function UnifiedFinancePage() {
         throw new Error(savedTransaction.message || 'Gagal menyimpan transaksi.');
       }
       
-      // PERUBAHAN: Mengaktifkan kembali auto-render
       if (savedTransaction && Array.isArray(savedTransaction) && savedTransaction.length > 0) {
         setTransactions(prev => [savedTransaction[0], ...prev.filter(t => t.id !== savedTransaction[0].id)]);
       } else {
@@ -202,7 +201,7 @@ export default function UnifiedFinancePage() {
     }
 
       const formData = {
-        user_id: user.id, // <-- TAMBAHKAN BARIS INI
+        user_id: user.id,
         revenue: Number(revenue),
         cogs: Number(cogs),
         operating_expenses: Number(operatingExpenses),
@@ -213,11 +212,22 @@ export default function UnifiedFinancePage() {
       };
 
     try {
-      const predictResponse = await fetch('/api/predict', {
+      // ================== PERUBAHAN DI SINI ==================
+      // 1. Ambil URL backend dari environment variable
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL;
+
+      // 2. Validasi URL
+      if (!backendUrl) {
+        throw new Error("Konfigurasi URL backend tidak ditemukan.");
+      }
+
+      // 3. Gunakan URL lengkap untuk fetch
+      const predictResponse = await fetch(`${backendUrl}/api/predict`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
+      // =======================================================
 
       const predictionResults = await predictResponse.json();
 
