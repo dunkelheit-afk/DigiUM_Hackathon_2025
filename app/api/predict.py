@@ -6,7 +6,6 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 
 # Muat environment variables dari file .env jika ada (untuk development lokal)
-# Baris ini tidak akan berpengaruh saat di-deploy di Vercel
 load_dotenv() 
 
 # Inisialisasi aplikasi Flask
@@ -17,12 +16,10 @@ CORS(app)
 supabase = None
 try:
     # Ambil URL dan Key dari environment variables
-    # Saat lokal, ini akan diambil dari file .env. Saat di Vercel, akan diambil dari pengaturan Vercel.
     url: str = os.environ.get("SUPABASE_URL")
     key: str = os.environ.get("SUPABASE_KEY")
     
     if not url or not key:
-        # Pesan error ini akan muncul di log Vercel jika variabel tidak ditemukan
         raise ValueError("SUPABASE_URL atau SUPABASE_KEY tidak ditemukan di environment variables.")
         
     supabase: Client = create_client(url, key)
@@ -40,10 +37,8 @@ def predict():
     if not supabase:
         return jsonify({"error": "Konfigurasi Supabase di backend belum lengkap. Periksa log fungsi."}), 500
 
-    # Mengambil data JSON dari request
     data = request.get_json()
 
-    # Validasi field yang dibutuhkan
     try:
         user_id = data["user_id"]
         revenue = float(data["revenue"])
@@ -106,10 +101,10 @@ def predict():
 
     # Menyimpan data ke tabel 'analysis_records' di Supabase
     try:
-        api_response = supabase.table('analysis_records').insert(record_to_insert).execute()
-        # Cek jika ada error dari Supabase API
-        if api_response.error:
-            raise Exception(api_response.error.message)
+        # Pustaka Supabase yang baru akan otomatis memunculkan error (raise exception) jika gagal,
+        # jadi kita tidak perlu memeriksa .error secara manual.
+        supabase.table('analysis_records').insert(record_to_insert).execute()
+
     except Exception as e:
         print(f"Supabase insertion error: {str(e)}") # Log error untuk debugging
         return jsonify({"error": f"Gagal menyimpan ke Supabase dari backend: {str(e)}"}), 500
@@ -122,5 +117,4 @@ def predict():
 
 # Baris ini dibutuhkan untuk menjalankan server Flask secara lokal
 if __name__ == "__main__":
-    # Port 5001 digunakan agar tidak bentrok dengan port default Next.js (3000) atau Vite (5173)
     app.run(debug=True, port=5001)
