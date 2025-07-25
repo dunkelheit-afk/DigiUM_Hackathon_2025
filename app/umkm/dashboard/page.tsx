@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Loader2, AlertCircle, TrendingUp, ShieldCheck, ShieldAlert, ShieldQuestion } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-// Tipe data untuk hasil analisis tetap sama
+// Tipe data untuk hasil analisis
 interface AnalysisRecord {
   id: string;
   created_at: string;
@@ -20,55 +20,21 @@ interface AnalysisRecord {
   asset_turnover: number;
 }
 
-// ================== REFACTOR KOMPONEN METRICCARD ==================
-// Komponen MetricCard sekarang lebih pintar.
-// Ia menerima nilai mentah (raw value) dan mengurus format & statusnya sendiri.
-type MetricStatus = 'good' | 'average' | 'bad';
-
-interface MetricCardProps {
-  title: string;
-  value: number | null | undefined; // Nilai bisa null atau undefined saat loading/error
-  formatAs?: 'percentage' | 'decimal'; // Opsi untuk format
-  // Tentukan ambang batas untuk status 'good' atau 'average'
-  thresholds: {
-    good: (v: number) => boolean;
-    average?: (v: number) => boolean;
-  };
-}
-
-const MetricCard = ({ title, value, formatAs = 'decimal', thresholds }: MetricCardProps) => {
-  // 1. Menentukan Status (good, average, bad) secara internal
-  let status: MetricStatus = 'bad';
-  if (value !== null && value !== undefined) {
-    if (thresholds.good(value)) {
-      status = 'good';
-    } else if (thresholds.average && thresholds.average(value)) {
-      status = 'average';
-    }
-  }
-
-  // 2. Memformat Tampilan Nilai secara internal (menangani null/undefined)
-  const displayValue = (): string => {
-    const numValue = value ?? 0; // Jika value null/undefined, anggap 0
-    const formatted = formatAs === 'percentage'
-      ? `${(numValue * 100).toFixed(2)}%`
-      : numValue.toFixed(2);
-    return value === null || value === undefined ? '-' : formatted;
-  };
-
+// ================== MENGEMBALIKAN KOMPONEN METRICCARD KE VERSI SIMPEL ==================
+// Komponen ini hanya bertanggung jawab untuk menampilkan data yang sudah diformat.
+const MetricCard = ({ title, value, status }: { title: string; value: string; status: 'good' | 'average' | 'bad' }) => {
   const statusClasses = {
     good: 'text-green-600',
     average: 'text-yellow-600',
     bad: 'text-red-600',
   };
-
   return (
     <motion.div
       variants={{ hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } }}
       className="bg-white/50 p-4 rounded-lg shadow-sm"
     >
       <p className="text-sm text-gray-600">{title}</p>
-      <p className={`text-2xl font-bold ${statusClasses[status]}`}>{displayValue()}</p>
+      <p className={`text-2xl font-bold ${statusClasses[status]}`}>{value}</p>
     </motion.div>
   );
 };
@@ -98,7 +64,9 @@ export default function DashboardPage() {
           .order('created_at', { ascending: false })
           .limit(1)
           .single();
-        if (error && error.code !== 'PGRST116') throw error;
+        if (error && error.code !== 'PGRST116') {
+          throw error;
+        }
         setLatestAnalysis(data);
       } catch (err: any) {
         console.error("Gagal memuat analisis terakhir:", err);
@@ -107,7 +75,9 @@ export default function DashboardPage() {
         setIsLoading(false);
       }
     };
-    if (!isUserLoading) fetchLatestAnalysis();
+    if (!isUserLoading) {
+      fetchLatestAnalysis();
+    }
   }, [user, isUserLoading, supabase]);
 
   const getStatusInfo = (status: string | undefined) => {
@@ -182,33 +152,31 @@ export default function DashboardPage() {
               variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
               className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4"
             >
-              {/* Logika status dan format sekarang ada di dalam MetricCard */}
+              {/* Logika format dan status kembali ke sini, sesuai permintaan */}
               <MetricCard 
                 title="Net Profit Margin" 
-                value={latestAnalysis.net_profit_margin}
-                formatAs="percentage"
-                thresholds={{ good: v => v >= 0.1 }}
+                value={`${(latestAnalysis.net_profit_margin * 100).toFixed(2)}%`}
+                status={latestAnalysis.net_profit_margin >= 0.1 ? 'good' : 'bad'}
               />
               <MetricCard 
                 title="Current Ratio" 
-                value={latestAnalysis.current_ratio}
-                thresholds={{ good: v => v >= 1.2 }}
+                value={latestAnalysis.current_ratio.toFixed(2)}
+                status={latestAnalysis.current_ratio >= 1.2 ? 'good' : 'bad'}
               />
               <MetricCard 
                 title="Debt to Equity" 
-                value={latestAnalysis.debt_to_equity}
-                thresholds={{ good: v => v < 1.0, average: v => v < 1.5 }}
+                value={latestAnalysis.debt_to_equity.toFixed(2)}
+                status={latestAnalysis.debt_to_equity < 1.0 ? 'good' : 'average'}
               />
               <MetricCard 
                 title="Return on Assets (ROA)" 
-                value={latestAnalysis.roa}
-                formatAs="percentage"
-                thresholds={{ good: v => v > 0.05 }}
+                value={`${(latestAnalysis.roa * 100).toFixed(2)}%`}
+                status={latestAnalysis.roa > 0.05 ? 'good' : 'bad'}
               />
               <MetricCard 
                 title="Asset Turnover" 
-                value={latestAnalysis.asset_turnover}
-                thresholds={{ good: v => v > 1.0, average: v => v > 0.5 }}
+                value={latestAnalysis.asset_turnover.toFixed(2)}
+                status={latestAnalysis.asset_turnover > 0.5 ? 'good' : 'average'}
               />
             </motion.div>
           </div>
