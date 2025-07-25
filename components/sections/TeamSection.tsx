@@ -1,10 +1,14 @@
-// components/sections/TeamSection.tsx
 'use client';
 
 import React, { useRef, useState, useEffect } from 'react';
-import Image from 'next/image';
+import Image, { StaticImageData } from 'next/image'; // Import StaticImageData
 import { useInView } from '@/hooks/useInView';
 import { animate } from 'framer-motion';
+
+// --- PERBAIKAN: Impor gambar sebagai modul ---
+import adamsGif from '@/public/adamm.png';
+import cabulGif from '@/public/cabull.png';
+import dodoGif from '@/public/arikk.png';
 
 const cn = (...inputs: (string | boolean | undefined | null)[]) => {
   return inputs.filter(Boolean).join(' ');
@@ -14,7 +18,7 @@ interface TeamMember {
   name: string;
   role: string;
   jobDescription: string;
-  image: string;
+  image: StaticImageData | string; // Ubah tipe data untuk menerima modul gambar
   alt: string;
 }
 
@@ -94,6 +98,7 @@ const TeamMemberCard = ({ member, animationClasses }: { member: TeamMember; anim
             <Image
               src={member.image}
               alt={member.alt}
+              quality={100}
               fill
               className="object-cover"
               unoptimized={true}
@@ -114,21 +119,21 @@ export default function TeamSection() {
       name: "Adam Monhardi",
       role: "Front-end Engineer",
       jobDescription: "Menciptakan antarmuka pengguna yang intuitif dan memastikan pengalaman pengguna yang mulus.",
-      image: "/adams.GIF",
+      image: adamsGif, // <-- PERBAIKAN: Gunakan variabel yang diimpor
       alt: "Adam Monhardi - Front-end",
     },
     {
       name: "Arsyad Fatturahman",
       role: "Backend Engineer",
       jobDescription: "Membangun logika sisi server yang kuat dan mengelola sistem basis data untuk kinerja optimal.",
-      image: "/cabul.GIF",
+      image: cabulGif, // <-- PERBAIKAN: Gunakan variabel yang diimpor
       alt: "Arsyad Fatturahman - Backend",
     },
     {
       name: "Ariq Faishal Hanif",
       role: "AI/ML Engineer",
       jobDescription: "Mengembangkan algoritma cerdas dan model machine learning untuk analisis data dan wawasan.",
-      image: "/dodo.GIF",
+      image: dodoGif, // <-- PERBAIKAN: Gunakan variabel yang diimpor
       alt: "Ariq Faishal Hanif - AI/ML",
     },
   ];
