@@ -212,7 +212,6 @@ export default function UnifiedFinancePage() {
       };
 
     try {
-      // ================== PERUBAHAN DI SINI ==================
       // 1. Ambil URL backend dari environment variable
       const backendUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -227,7 +226,6 @@ export default function UnifiedFinancePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-      // =======================================================
 
       const predictionResults = await predictResponse.json();
 
@@ -238,24 +236,25 @@ export default function UnifiedFinancePage() {
       setAnalysisResults(predictionResults);
       toast({ title: "Prediksi Berhasil!", description: `Status kesehatan UMKM Anda: ${predictionResults.prediction_status}` });
 
-      const recordToSave = {
-        ...formData,
-        prediction_status: predictionResults.prediction_status,
-        recommendation: predictionResults.recommendation,
-      };
+      // Ngilangin duplikasi Data di DATABASE (ARCA)
+      // const recordToSave = {
+      //   ...formData,
+      //   prediction_status: predictionResults.prediction_status,
+      //   recommendation: predictionResults.recommendation,
+      // };
 
-      const saveRecordResponse = await fetch('/api/analysis-records', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(recordToSave),
-      });
+      // const saveRecordResponse = await fetch('/api/analysis-records', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify(recordToSave),
+      // });
 
-      if (!saveRecordResponse.ok) {
-        console.error("Gagal menyimpan catatan analisis ke database.");
-        toast({ title: "Peringatan", description: "Hasil analisis berhasil didapat, namun gagal disimpan dalam riwayat.", variant: "destructive" });
-      } else {
-        console.log("Catatan analisis berhasil disimpan.");
-      }
+      // if (!saveRecordResponse.ok) {
+      //   console.error("Gagal menyimpan catatan analisis ke database.");
+      //   toast({ title: "Peringatan", description: "Hasil analisis berhasil didapat, namun gagal disimpan dalam riwayat.", variant: "destructive" });
+      // } else {
+      //   console.log("Catatan analisis berhasil disimpan.");
+      // }
 
       setRevenue(''); setCogs(''); setOperatingExpenses(''); setTotalAssets('');
       setCash(''); setTotalLiabilities(''); setTotalEquity('');

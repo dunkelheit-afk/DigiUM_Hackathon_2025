@@ -142,43 +142,43 @@ export default function DashboardPage() {
              </CardContent>
           )}
         </Card>
-
+        {/* Edited by arca */}
         {latestAnalysis ? (
           <div>
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Detail Metrik Terakhir</h2>
             <motion.div 
-              initial="hidden"
-              animate="visible"
-              variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
-              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4"
-            >
-              {/* Logika format dan status kembali ke sini, sesuai permintaan */}
-              <MetricCard 
-                title="Net Profit Margin" 
-                value={`${(latestAnalysis.net_profit_margin * 100).toFixed(2)}%`}
-                status={latestAnalysis.net_profit_margin >= 0.1 ? 'good' : 'bad'}
-              />
-              <MetricCard 
-                title="Current Ratio" 
-                value={latestAnalysis.current_ratio.toFixed(2)}
-                status={latestAnalysis.current_ratio >= 1.2 ? 'good' : 'bad'}
-              />
-              <MetricCard 
-                title="Debt to Equity" 
-                value={latestAnalysis.debt_to_equity.toFixed(2)}
-                status={latestAnalysis.debt_to_equity < 1.0 ? 'good' : 'average'}
-              />
-              <MetricCard 
-                title="Return on Assets (ROA)" 
-                value={`${(latestAnalysis.roa * 100).toFixed(2)}%`}
-                status={latestAnalysis.roa > 0.05 ? 'good' : 'bad'}
-              />
-              <MetricCard 
-                title="Asset Turnover" 
-                value={latestAnalysis.asset_turnover.toFixed(2)}
-                status={latestAnalysis.asset_turnover > 0.5 ? 'good' : 'average'}
-              />
-            </motion.div>
+            initial="hidden"
+            animate="visible"
+            variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4"
+          >
+            {/* Menggunakan Nullish Coalescing Operator (??) untuk fallback ke 0 */}
+            <MetricCard 
+              title="Net Profit Margin" 
+              value={`${(((latestAnalysis.net_profit_margin ?? 0) * 100).toFixed(2))}%`}
+              status={(latestAnalysis.net_profit_margin ?? 0) >= 0.1 ? 'good' : 'bad'}
+            />
+            <MetricCard 
+              title="Current Ratio" 
+              value={(latestAnalysis.current_ratio ?? 0).toFixed(2)}
+              status={(latestAnalysis.current_ratio ?? 0) >= 1.2 ? 'good' : 'bad'}
+            />
+            <MetricCard 
+              title="Debt to Equity" 
+              value={(latestAnalysis.debt_to_equity ?? 0).toFixed(2)}
+              status={(latestAnalysis.debt_to_equity ?? 0) < 1.0 ? 'good' : 'average'}
+            />
+            <MetricCard 
+              title="Return on Assets (ROA)" 
+              value={`${(((latestAnalysis.roa ?? 0) * 100).toFixed(2))}%`}
+              status={(latestAnalysis.roa ?? 0) > 0.05 ? 'good' : 'bad'}
+            />
+            <MetricCard 
+              title="Asset Turnover" 
+              value={(latestAnalysis.asset_turnover ?? 0).toFixed(2)}
+              status={(latestAnalysis.asset_turnover ?? 0) > 0.5 ? 'good' : 'average'}
+            />
+          </motion.div>
           </div>
         ) : (
           <Card className="text-center p-8">
