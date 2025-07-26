@@ -18,7 +18,7 @@ Untuk pemahaman yang lebih mendalam mengenai latar belakang, tujuan, model bisni
 
 Anda dapat mencoba langsung aplikasi DigiUM yang telah kami deploy melalui tautan berikut:
 
-  - [cite\_start]**[https://digium.vercel.app](https://www.google.com/search?q=https://digium.vercel.app)** [cite: 421, 455]
+  - **[https://digium.vercel.app](https://digium.vercel.app)**
   
 ## Fitur Utama
 
